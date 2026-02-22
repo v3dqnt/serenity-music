@@ -4,8 +4,9 @@ import path from 'path';
 import fs from 'fs';
 
 /**
- * Serenity Streaming API (Python Reversion V5)
- * -------------------------------------------
+ * Serenity Streaming API (Standalone Binary Version)
+ * ------------------------------------------------
+ * Executes the self-contained yt-dlp Linux binary.
  */
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -15,63 +16,49 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
     }
 
-    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-
-    // Attempt to locate lib/python using multiple strategy
+    // Binary location
     const cwd = process.cwd();
-    const potentialPaths = [
-        path.join(cwd, 'lib/python'),
-        path.join(cwd, '.next/server/lib/python'),
-        path.join(cwd, '..', 'lib/python'),
-        '/var/task/lib/python'
-    ];
+    const binaryPath = path.join(cwd, 'lib/yt-dlp');
 
-    let pythonLibPath = potentialPaths[0];
-    for (const p of potentialPaths) {
-        if (fs.existsSync(p)) {
-            pythonLibPath = p;
-            break;
-        }
+    // Fallback for local development (if you still have python locally)
+    const isVercel = process.env.VERCEL === '1';
+    const hasBinary = fs.existsSync(binaryPath);
+
+    let spawnCmd = hasBinary ? binaryPath : (process.platform === 'win32' ? 'python' : 'python3');
+    let baseArgs: string[] = (!hasBinary) ? ['-m', 'yt_dlp'] : [];
+
+    // On Vercel, ensure it's executable
+    if (hasBinary && isVercel) {
+        try { fs.chmodSync(binaryPath, '755'); } catch (e) { }
     }
 
-    const env = {
-        ...process.env,
-        PYTHONPATH: `${pythonLibPath}${path.delimiter}${process.env.PYTHONPATH || ''}`,
-        PYTHONUNBUFFERED: '1'
-    };
-
-    // Use absolute path to python lib if possible
-    console.log(`[stream] Using PYTHONPATH: ${env.PYTHONPATH}`);
+    console.log(`[stream] Spawning ${spawnCmd} for ${videoId}`);
 
     const args = [
-        '-m', 'yt_dlp',
-        '--format', 'bestaudio[ext=m4a]/bestaudio', // Specific format for browser compatibility
+        ...baseArgs,
+        '--format', 'bestaudio[ext=m4a]/bestaudio',
         '--output', '-',
         '--quiet',
         '--no-playlist',
         '--no-warnings',
         '--no-check-certificates',
-        '--no-part', // Crucial: don't write part files to RO filesystem
+        '--no-part',
         `https://www.youtube.com/watch?v=${videoId}`
     ];
 
     let ytDlp: any;
     try {
-        ytDlp = spawn(pythonCmd, args, { env });
+        ytDlp = spawn(spawnCmd, args);
     } catch (e: any) {
-        console.error(`[stream] Spawn failure: ${e.message}`);
-        return NextResponse.json({ error: `Spawn failed: ${e.message}` }, { status: 500 });
+        return NextResponse.json({ error: `Spawn failed: ${e.message}`, path: binaryPath }, { status: 500 });
     }
 
     const stream = new ReadableStream({
         start(controller) {
-            ytDlp.stdout.on('data', (chunk: any) => {
-                controller.enqueue(chunk);
-            });
+            ytDlp.stdout.on('data', (chunk: any) => controller.enqueue(chunk));
 
             ytDlp.stderr.on('data', (data: any) => {
-                const msg = data.toString();
-                console.error(`[stream] yt-dlp stderr: ${msg}`);
+                console.error(`[stream] yt-dlp stderr: ${data.toString()}`);
             });
 
             ytDlp.on('close', (code: number) => {
@@ -80,7 +67,6 @@ export async function GET(request: Request) {
             });
 
             ytDlp.on('error', (err: any) => {
-                console.error(`[stream] process error: ${err.message}`);
                 controller.error(err);
             });
         },
@@ -91,7 +77,7 @@ export async function GET(request: Request) {
 
     return new Response(stream, {
         headers: {
-            'Content-Type': 'audio/mp4', // Back to mp4 as we requested m4a
+            'Content-Type': 'audio/mp4',
             'Cache-Control': 'no-cache',
             'Transfer-Encoding': 'chunked',
         },

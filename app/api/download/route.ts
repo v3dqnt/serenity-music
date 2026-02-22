@@ -5,7 +5,7 @@ import os from 'os';
 import fs from 'fs';
 
 /**
- * Serenity Download API (Python Reversion V5)
+ * Serenity Download API (Standalone Binary Version)
  */
 export async function POST(request: Request) {
     try {
@@ -14,48 +14,35 @@ export async function POST(request: Request) {
 
         if (!videoId) return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
 
-        // Use /tmp which is writable on Vercel
         const tmpDir = path.join(os.tmpdir(), 'serenity-audio');
         if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
         const outputTemplate = path.join(tmpDir, `${videoId}.%(ext)s`);
 
-        const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
         const cwd = process.cwd();
+        const binaryPath = path.join(cwd, 'lib/yt-dlp');
+        const hasBinary = fs.existsSync(binaryPath);
 
-        const potentialPaths = [
-            path.join(cwd, 'lib/python'),
-            path.join(cwd, '.next/server/lib/python'),
-            '/var/task/lib/python'
-        ];
+        let spawnCmd = hasBinary ? binaryPath : (process.platform === 'win32' ? 'python' : 'python3');
+        let baseArgs: string[] = (!hasBinary) ? ['-m', 'yt_dlp'] : [];
 
-        let pythonLibPath = potentialPaths[0];
-        for (const p of potentialPaths) {
-            if (fs.existsSync(p)) {
-                pythonLibPath = p;
-                break;
-            }
+        if (hasBinary && process.env.VERCEL === '1') {
+            try { fs.chmodSync(binaryPath, '755'); } catch (e) { }
         }
 
-        const env = {
-            ...process.env,
-            PYTHONPATH: `${pythonLibPath}${path.delimiter}${process.env.PYTHONPATH || ''}`,
-            PYTHONUNBUFFERED: '1'
-        };
-
         const args = [
-            '-m', 'yt_dlp',
+            ...baseArgs,
             '-f', 'bestaudio[ext=m4a]/bestaudio',
             '--no-playlist',
             '--no-check-certificates',
-            '--no-part', // Important for RO environments
+            '--no-part',
             '--output', outputTemplate,
             `https://www.youtube.com/watch?v=${videoId}`
         ];
 
         return new Promise<Response>((resolve) => {
+            const ytDlp = spawn(spawnCmd, args);
             let stderr = '';
-            const ytDlp = spawn(pythonCmd, args, { env });
 
             ytDlp.stderr.on('data', (data: any) => {
                 stderr += data.toString();
@@ -63,8 +50,7 @@ export async function POST(request: Request) {
 
             ytDlp.on('close', async (code: number) => {
                 if (code !== 0) {
-                    console.error(`[download] yt-dlp failed (code ${code}): ${stderr}`);
-                    return resolve(NextResponse.json({ error: `yt-dlp failed (code ${code}): ${stderr}` }, { status: 500 }));
+                    return resolve(NextResponse.json({ error: `yt-dlp failed: ${stderr}` }, { status: 500 }));
                 }
 
                 try {
