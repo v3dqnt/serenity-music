@@ -10,6 +10,7 @@ export async function GET() {
         rootContents: fs.readdirSync(cwd),
         libExists: fs.existsSync(path.join(cwd, 'lib')),
         libContents: fs.existsSync(path.join(cwd, 'lib')) ? fs.readdirSync(path.join(cwd, 'lib')) : [],
+        cookiesFound: fs.existsSync(path.join(cwd, 'lib/cookies.txt')),
         tmpContents: fs.readdirSync('/tmp').slice(0, 10),
     };
 
