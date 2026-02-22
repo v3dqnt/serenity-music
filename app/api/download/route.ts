@@ -5,9 +5,8 @@ import os from 'os';
 import fs from 'fs';
 
 /**
- * Serenity Download API (Python Reversion V4)
+ * Serenity Download API (Python Reversion V5 - Diagnostic)
  * -------------------------------------------
- * Uses yt-dlp via PYTHONPATH for maximum reliability on Vercel.
  */
 export async function POST(request: Request) {
     try {
@@ -24,11 +23,9 @@ export async function POST(request: Request) {
         const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
         const cwd = process.cwd();
 
-        // Match the same potential paths as the streaming route
         const potentialPaths = [
             path.join(cwd, 'lib/python'),
             path.join(cwd, '.next/server/lib/python'),
-            path.join(cwd, '..', 'lib/python'),
             '/var/task/lib/python'
         ];
 
@@ -46,36 +43,28 @@ export async function POST(request: Request) {
             PYTHONUNBUFFERED: '1'
         };
 
-        console.log(`[download] Spawning ${pythonCmd} -m yt_dlp for ${videoId}`);
-
         const args = [
             '-m', 'yt_dlp',
-            '-f', 'bestaudio[ext=m4a]/bestaudio',
+            '-f', 'bestaudio',
             '--no-playlist',
-            '--no-warnings',
-            '--no-part',               // Crucial for direct processing
             '--no-check-certificates',
+            '--no-part',
             '--output', outputTemplate,
             `https://www.youtube.com/watch?v=${videoId}`
         ];
 
         return new Promise<Response>((resolve) => {
-            let ytDlp: any;
-            try {
-                ytDlp = spawn(pythonCmd, args, { env });
-            } catch (e: any) {
-                console.error(`[download] Spawn failure:`, e);
-                return resolve(NextResponse.json({ error: `Spawn failed: ${e.message}` }, { status: 500 }));
-            }
+            const ytDlp = spawn(pythonCmd, args, { env });
+            let stderr = '';
 
             ytDlp.stderr.on('data', (data: any) => {
-                console.error(`[download] yt-dlp stderr: ${data.toString()}`);
+                stderr += data.toString();
             });
 
             ytDlp.on('close', async (code: number) => {
                 if (code !== 0) {
-                    console.error(`[download] yt-dlp exited with code ${code}`);
-                    return resolve(NextResponse.json({ error: 'Download failed' }, { status: 500 }));
+                    console.error(`[download] yt-dlp failed: ${stderr}`);
+                    return resolve(NextResponse.json({ error: `yt-dlp failed (code ${code}): ${stderr}` }, { status: 500 }));
                 }
 
                 const files = fs.readdirSync(tmpDir);
@@ -87,15 +76,11 @@ export async function POST(request: Request) {
 
                 const finalPath = path.join(tmpDir, downloadedFile);
                 const buf = fs.readFileSync(finalPath);
-
-                // Cleanup
                 fs.unlinkSync(finalPath);
-
-                console.log(`[download] Successfully read ${buf.length} bytes for ${videoId}`);
 
                 resolve(new Response(new Uint8Array(buf), {
                     headers: {
-                        'Content-Type': 'audio/mp4',
+                        'Content-Type': 'audio/mpeg',
                         'X-Track-Id': videoId,
                         'X-Track-Title': encodeURIComponent(title || ''),
                         'X-Track-Artist': encodeURIComponent(channelTitle || ''),
@@ -104,13 +89,11 @@ export async function POST(request: Request) {
             });
 
             ytDlp.on('error', (err: any) => {
-                console.error(`[download] Process error:`, err);
-                resolve(NextResponse.json({ error: `Process error: ${err.message}` }, { status: 500 }));
+                resolve(NextResponse.json({ error: `Spawn error: ${err.message}` }, { status: 500 }));
             });
         });
 
     } catch (error: any) {
-        console.error('[download] Error:', error);
         return NextResponse.json({ error: `Server Error: ${error.message}` }, { status: 500 });
     }
 }
