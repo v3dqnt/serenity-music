@@ -5,7 +5,7 @@ import os from 'os';
 import fs from 'fs';
 
 /**
- * Serenity Download API (Standalone Binary Version)
+ * Serenity Download API (Binary Version - Final Polish)
  */
 export async function POST(request: Request) {
     try {
@@ -19,12 +19,17 @@ export async function POST(request: Request) {
 
         const outputTemplate = path.join(tmpDir, `${videoId}.%(ext)s`);
 
-        const cwd = process.cwd();
-        const binaryPath = path.join(cwd, 'lib/yt-dlp');
+        const binaryPath = path.join(process.cwd(), 'lib/yt-dlp');
         const hasBinary = fs.existsSync(binaryPath);
 
-        let spawnCmd = hasBinary ? binaryPath : (process.platform === 'win32' ? 'python' : 'python3');
-        let baseArgs: string[] = (!hasBinary) ? ['-m', 'yt_dlp'] : [];
+        const spawnCmd = hasBinary ? binaryPath : (process.platform === 'win32' ? 'python' : 'python3');
+        const baseArgs = !hasBinary ? ['-m', 'yt_dlp'] : [];
+
+        const env = {
+            ...process.env,
+            HOME: '/tmp',
+            PYTHONUNBUFFERED: '1'
+        };
 
         if (hasBinary && process.env.VERCEL === '1') {
             try { fs.chmodSync(binaryPath, '755'); } catch (e) { }
@@ -32,16 +37,17 @@ export async function POST(request: Request) {
 
         const args = [
             ...baseArgs,
-            '-f', 'bestaudio[ext=m4a]/bestaudio',
+            '-f', 'ba[ext=m4a]/ba',
             '--no-playlist',
             '--no-check-certificates',
             '--no-part',
+            '--no-cache-dir',
             '--output', outputTemplate,
             `https://www.youtube.com/watch?v=${videoId}`
         ];
 
         return new Promise<Response>((resolve) => {
-            const ytDlp = spawn(spawnCmd, args);
+            const ytDlp = spawn(spawnCmd, args, { env });
             let stderr = '';
 
             ytDlp.stderr.on('data', (data: any) => {
@@ -50,6 +56,7 @@ export async function POST(request: Request) {
 
             ytDlp.on('close', async (code: number) => {
                 if (code !== 0) {
+                    console.error(`[download] failed: ${stderr}`);
                     return resolve(NextResponse.json({ error: `yt-dlp failed: ${stderr}` }, { status: 500 }));
                 }
 
@@ -74,11 +81,13 @@ export async function POST(request: Request) {
                         },
                     }));
                 } catch (e: any) {
+                    console.error(`[download] Read error: ${e.message}`);
                     resolve(NextResponse.json({ error: `Read error: ${e.message}` }, { status: 500 }));
                 }
             });
 
             ytDlp.on('error', (err: any) => {
+                console.error(`[download] Spawn error: ${err.message}`);
                 resolve(NextResponse.json({ error: `Spawn error: ${err.message}` }, { status: 500 }));
             });
         });
