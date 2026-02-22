@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 
 /**
- * Serenity Streaming API (Python Reversion V5 - Diagnostic)
+ * Serenity Streaming API (Python Reversion V5)
  * -------------------------------------------
  */
 export async function GET(request: Request) {
@@ -16,11 +16,13 @@ export async function GET(request: Request) {
     }
 
     const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-    const cwd = process.cwd();
 
+    // Attempt to locate lib/python using multiple strategy
+    const cwd = process.cwd();
     const potentialPaths = [
         path.join(cwd, 'lib/python'),
         path.join(cwd, '.next/server/lib/python'),
+        path.join(cwd, '..', 'lib/python'),
         '/var/task/lib/python'
     ];
 
@@ -38,15 +40,18 @@ export async function GET(request: Request) {
         PYTHONUNBUFFERED: '1'
     };
 
+    // Use absolute path to python lib if possible
+    console.log(`[stream] Using PYTHONPATH: ${env.PYTHONPATH}`);
+
     const args = [
         '-m', 'yt_dlp',
-        '--format', 'bestaudio',
+        '--format', 'bestaudio[ext=m4a]/bestaudio', // Specific format for browser compatibility
         '--output', '-',
         '--quiet',
         '--no-playlist',
         '--no-warnings',
-        '--no-part',
         '--no-check-certificates',
+        '--no-part', // Crucial: don't write part files to RO filesystem
         `https://www.youtube.com/watch?v=${videoId}`
     ];
 
@@ -54,13 +59,9 @@ export async function GET(request: Request) {
     try {
         ytDlp = spawn(pythonCmd, args, { env });
     } catch (e: any) {
+        console.error(`[stream] Spawn failure: ${e.message}`);
         return NextResponse.json({ error: `Spawn failed: ${e.message}` }, { status: 500 });
     }
-
-    let errorOutput = '';
-    ytDlp.stderr.on('data', (data: any) => {
-        errorOutput += data.toString();
-    });
 
     const stream = new ReadableStream({
         start(controller) {
@@ -68,27 +69,29 @@ export async function GET(request: Request) {
                 controller.enqueue(chunk);
             });
 
+            ytDlp.stderr.on('data', (data: any) => {
+                const msg = data.toString();
+                console.error(`[stream] yt-dlp stderr: ${msg}`);
+            });
+
             ytDlp.on('close', (code: number) => {
-                if (code !== 0) {
-                    console.error(`[stream] yt-dlp failed: ${errorOutput}`);
-                    // We can't return JSON now as the stream header is already sent
-                }
+                console.log(`[stream] yt-dlp exited with code ${code}`);
                 controller.close();
             });
 
             ytDlp.on('error', (err: any) => {
+                console.error(`[stream] process error: ${err.message}`);
                 controller.error(err);
             });
         },
         cancel() {
-            ytDlp.kill();
+            try { ytDlp.kill(); } catch { }
         }
     });
 
-    // Content-Type: audio/mpeg is a safe bet for most browsers
     return new Response(stream, {
         headers: {
-            'Content-Type': 'audio/mpeg',
+            'Content-Type': 'audio/mp4', // Back to mp4 as we requested m4a
             'Cache-Control': 'no-cache',
             'Transfer-Encoding': 'chunked',
         },
