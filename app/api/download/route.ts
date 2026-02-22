@@ -5,9 +5,9 @@ import os from 'os';
 import fs from 'fs';
 
 /**
- * Serenity Download API (Python Reversion V3)
- * -------------------------------------------
- * Uses yt-dlp via PYTHONPATH for maximum reliability on Vercel.
+ * Serenity Download API
+ * ---------------------
+ * Uses the same logic as local development but updated for Vercel.
  */
 export async function POST(request: Request) {
     try {
@@ -22,12 +22,11 @@ export async function POST(request: Request) {
         const outputTemplate = path.join(tmpDir, `${videoId}.%(ext)s`);
 
         const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-        const rootPath = process.env.PWD || process.cwd();
-        const pythonLibPath = path.join(rootPath, 'lib/python');
+        const pythonLibPath = path.resolve(process.cwd(), 'lib/python');
 
         const env = {
             ...process.env,
-            PYTHONPATH: `${pythonLibPath}${path.delimiter}${process.env.PYTHONPATH || ''}`,
+            PYTHONPATH: pythonLibPath,
             PYTHONUNBUFFERED: '1'
         };
 
@@ -37,19 +36,12 @@ export async function POST(request: Request) {
             '-m', 'yt_dlp',
             '-f', 'bestaudio[ext=m4a]/bestaudio',
             '--no-playlist',
-            '--no-check-certificates',
             '--output', outputTemplate,
             `https://www.youtube.com/watch?v=${videoId}`
         ];
 
         return new Promise<Response>((resolve) => {
-            let ytDlp: any;
-            try {
-                ytDlp = spawn(pythonCmd, args, { env });
-            } catch (e: any) {
-                console.error(`[download] Spawn failed ${pythonCmd}:`, e);
-                return resolve(NextResponse.json({ error: `Spawn failed: ${e.message}` }, { status: 500 }));
-            }
+            const ytDlp = spawn(pythonCmd, args, { env });
 
             ytDlp.on('close', async (code: number) => {
                 if (code !== 0) {

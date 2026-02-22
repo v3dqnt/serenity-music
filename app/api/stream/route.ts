@@ -3,9 +3,9 @@ import { spawn } from 'child_process';
 import path from 'path';
 
 /**
- * Serenity Streaming API (Python Reversion V3)
- * -------------------------------------------
- * Uses yt-dlp via PYTHONPATH for maximum reliability on Vercel.
+ * Serenity Streaming API
+ * ----------------------
+ * Uses the same logic as local development but updated for Vercel.
  */
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -15,60 +15,61 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
     }
 
+    // Determine the python command based on the environment
     const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
 
-    // On Vercel, we need to ensure the path is absolute and points to our bundled lib
-    const rootPath = process.env.PWD || process.cwd();
-    const pythonLibPath = path.join(rootPath, 'lib/python');
+    // Set up the environment to find our locally installed yt-dlp
+    // We use process.cwd() as the base
+    const pythonLibPath = path.resolve(process.cwd(), 'lib/python');
 
     const env = {
         ...process.env,
-        PYTHONPATH: `${pythonLibPath}${path.delimiter}${process.env.PYTHONPATH || ''}`,
+        PYTHONPATH: pythonLibPath,
         PYTHONUNBUFFERED: '1'
     };
 
     console.log(`[stream] Spawning ${pythonCmd} -m yt_dlp for ${videoId}`);
-    console.log(`[stream] PYTHONPATH: ${env.PYTHONPATH}`);
 
+    // Same arguments as used locally
     const args = [
         '-m', 'yt_dlp',
         '--format', 'bestaudio[ext=m4a]/bestaudio',
         '--output', '-',
+        '--quiet',
         '--no-playlist',
         '--no-warnings',
-        '--no-check-certificates', // Helps in some restricted environments
         `https://www.youtube.com/watch?v=${videoId}`
     ];
 
-    let ytDlp: any;
-    try {
-        ytDlp = spawn(pythonCmd, args, { env });
-    } catch (e: any) {
-        console.error(`[stream] Failed to spawn ${pythonCmd}:`, e);
-        return NextResponse.json({ error: `Spawn failed: ${e.message}` }, { status: 500 });
-    }
+    const ytDlp = spawn(pythonCmd, args, { env });
 
     const stream = new ReadableStream({
         start(controller) {
-            ytDlp.stdout.on('data', (chunk: any) => controller.enqueue(chunk));
+            ytDlp.stdout.on('data', (chunk: any) => {
+                controller.enqueue(chunk);
+            });
 
             ytDlp.stderr.on('data', (data: any) => {
                 const msg = data.toString();
-                if (msg.includes('ERROR')) console.error(`[stream] yt-dlp error: ${msg}`);
+                if (msg.includes('ERROR')) {
+                    console.error(`[stream] yt-dlp error: ${msg}`);
+                }
             });
 
             ytDlp.on('close', (code: number) => {
-                console.log(`[stream] yt-dlp closed with code ${code}`);
+                if (code !== 0) {
+                    console.error(`[stream] yt-dlp exited with code ${code}`);
+                }
                 controller.close();
             });
 
             ytDlp.on('error', (err: any) => {
-                console.error(`[stream] Process error:`, err);
+                console.error(`[stream] spawn error: ${err}`);
                 controller.error(err);
             });
         },
         cancel() {
-            try { ytDlp.kill(); } catch { }
+            ytDlp.kill();
         }
     });
 
@@ -77,7 +78,6 @@ export async function GET(request: Request) {
             'Content-Type': 'audio/mp4',
             'Cache-Control': 'no-cache',
             'Transfer-Encoding': 'chunked',
-            'X-Stream-Status': 'active'
         },
     });
 }

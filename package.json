@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "mkdir -p lib/python && python3 -m pip install --upgrade yt-dlp -t lib/python --no-cache-dir && next build --turbopack",
+    "build": "mkdir -p lib/python && python3 -m pip install yt-dlp -t lib/python && next build --turbopack",
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write"
