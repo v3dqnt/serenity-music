@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { spawn } from 'child_process';
+import ytdl from '@distube/ytdl-core';
 
 /**
  * Serenity Streaming API
  * ----------------------
- * Pipes yt-dlp output directly to the browser for near-instant playback.
- * Skips enhancement and disk I/O.
+ * Uses @distube/ytdl-core to stream audio directly from YouTube.
+ * Works on Vercel and local environments without needing Python/yt-dlp.
  */
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -15,50 +15,38 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
     }
 
-    // yt-dlp command to stream bestaudio to stdout
-    const args = [
-        '--format', 'bestaudio[ext=m4a]/bestaudio',
-        '--output', '-', // stream to stdout
-        '--quiet',
-        '--no-playlist',
-        '--no-warnings',
-        `https://www.youtube.com/watch?v=${videoId}`
-    ];
+    try {
+        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
-    const ytDlp = spawn('python', ['-m', 'yt_dlp', ...args]);
+        // Use ytdl-core to get the audio stream
+        // We filter for the best audio-only format that is likely to be an m4a/aac container
+        const stream = ytdl(videoUrl, {
+            filter: 'audioonly',
+            quality: 'highestaudio',
+            highWaterMark: 1 << 25, // 32mb buffer to keep the stream smooth
+        });
 
-    const stream = new ReadableStream({
-        start(controller) {
-            ytDlp.stdout.on('data', (chunk) => {
-                controller.enqueue(chunk);
-            });
+        // Convert Node.js Readable stream to Web ReadableStream
+        const webStream = new ReadableStream({
+            start(controller) {
+                stream.on('data', (chunk) => controller.enqueue(chunk));
+                stream.on('end', () => controller.close());
+                stream.on('error', (err) => controller.error(err));
+            },
+            cancel() {
+                stream.destroy();
+            }
+        });
 
-            ytDlp.stderr.on('data', (data) => {
-                console.error(`[stream] yt-dlp error: ${data}`);
-            });
-
-            ytDlp.on('close', (code) => {
-                if (code !== 0) {
-                    console.error(`[stream] yt-dlp exited with code ${code}`);
-                }
-                controller.close();
-            });
-
-            ytDlp.on('error', (err) => {
-                console.error(`[stream] spawn error: ${err}`);
-                controller.error(err);
-            });
-        },
-        cancel() {
-            ytDlp.kill();
-        }
-    });
-
-    return new Response(stream, {
-        headers: {
-            'Content-Type': 'audio/mp4',
-            'Cache-Control': 'no-cache',
-            'Transfer-Encoding': 'chunked',
-        },
-    });
+        return new Response(webStream, {
+            headers: {
+                'Content-Type': 'audio/mp4', // Most highestaudio formats are mp4/aac
+                'Cache-Control': 'no-cache',
+                'Transfer-Encoding': 'chunked',
+            },
+        });
+    } catch (error: any) {
+        console.error('[stream] Error:', error);
+        return NextResponse.json({ error: `Streaming failed: ${error.message}` }, { status: 500 });
+    }
 }

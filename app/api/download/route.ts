@@ -1,104 +1,59 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import ytdl from '@distube/ytdl-core';
 
-const execPromise = promisify(exec);
-
-// Use OS temp dir — works locally and on Vercel (/tmp is the only writable dir)
-const tmpDir = path.join(os.tmpdir(), 'serenity-audio');
-if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-
-/** Stream a file as an audio response, then delete it from disk */
-function streamAndDelete(filePath: string, videoId: string, meta: Record<string, string>): Response {
-    const ext = path.extname(filePath).toLowerCase();
-    const mimeType = ext === '.mp3' ? 'audio/mpeg'
-        : ext === '.opus' || ext === '.webm' ? 'audio/webm'
-            : 'audio/mp4';
-
-    let buf: Buffer;
-    try {
-        buf = fs.readFileSync(filePath);
-    } finally {
-        // Always clean up — audio lives in browser IndexedDB, not on disk
-        try { fs.unlinkSync(filePath); } catch { /* already gone */ }
-        // Also clean up any other temp files for this videoId
-        try {
-            const files = fs.readdirSync(tmpDir);
-            files.filter(f => f.startsWith(videoId + '.')).forEach(f => {
-                try { fs.unlinkSync(path.join(tmpDir, f)); } catch { /* ignore */ }
-            });
-        } catch { /* ignore */ }
-    }
-
-    return new Response(new Uint8Array(buf!), {
-        status: 200,
-        headers: {
-            'Content-Type': mimeType,
-            'Content-Length': buf!.length.toString(),
-            'X-Track-Id': videoId,
-            'X-Track-Mime': mimeType,
-            'X-Track-Title': encodeURIComponent(meta.title || ''),
-            'X-Track-Artist': encodeURIComponent(meta.channelTitle || ''),
-        },
-    });
-}
-
+/**
+ * Serenity Download API
+ * ---------------------
+ * Fetches the full audio stream and pipes it to the browser.
+ * The browser then handles permanent storage in IndexedDB.
+ * No local disk I/O used, which ensures compatibility with Vercel.
+ */
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { videoId, title, channelTitle, thumbnail } = body;
+        const { videoId, title, channelTitle } = body;
 
-        if (!videoId) return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
+        if (!videoId) {
+            return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
+        }
 
-        const meta = {
-            title: title || `Track ${videoId}`,
-            channelTitle: channelTitle || 'Unknown Artist',
-            thumbnail: thumbnail || '',
-            addedAt: new Date().toISOString(),
-        };
-
-        // ── Download to temp dir ─────────────────────────────────────────────
         console.log(`[download] Fetching: ${videoId}`);
-        const outputTemplate = path.join(tmpDir, `${videoId}.%(ext)s`);
-        const dlCmd = [
-            'python -m yt_dlp',
-            '-f "bestaudio[ext=m4a]/bestaudio"',
-            '--concurrent-fragments 5',
-            '--buffer-size 64K',
-            '--no-part',
-            '--no-check-certificates',
-            `--output "${outputTemplate}"`,
-            `"https://www.youtube.com/watch?v=${videoId}"`,
-        ].join(' ');
+        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
-        await execPromise(dlCmd, { timeout: 120_000 });
+        // Create the ytdl stream
+        const stream = ytdl(videoUrl, {
+            filter: 'audioonly',
+            quality: 'highestaudio',
+            highWaterMark: 1 << 25,
+        });
 
-        const files = fs.readdirSync(tmpDir);
-        const downloadedFile = files.find(f => f.startsWith(videoId + '.'));
-        if (!downloadedFile) throw new Error('Download produced no file');
+        // Convert Node.js Readable stream to Web ReadableStream
+        const webStream = new ReadableStream({
+            start(controller) {
+                stream.on('data', (chunk) => controller.enqueue(chunk));
+                stream.on('end', () => controller.close());
+                stream.on('error', (err) => controller.error(err));
+            },
+            cancel() {
+                stream.destroy();
+            }
+        });
 
-        const finalPath = path.join(tmpDir, downloadedFile);
-        console.log(`[download] Downloaded: ${downloadedFile}`);
+        const mimeType = 'audio/mp4';
 
-        // ── Stream to browser then delete ────────────────────────────────────
-        // Browser will store in IndexedDB — no permanent disk copy kept
-        console.log(`[download] Streaming & deleting: ${path.basename(finalPath)}`);
-        return streamAndDelete(finalPath, videoId, meta);
+        return new Response(webStream, {
+            status: 200,
+            headers: {
+                'Content-Type': mimeType,
+                'X-Track-Id': videoId,
+                'X-Track-Mime': mimeType,
+                'X-Track-Title': encodeURIComponent(title || ''),
+                'X-Track-Artist': encodeURIComponent(channelTitle || ''),
+            },
+        });
 
     } catch (error: any) {
         console.error('[download] Error:', error);
-        // Clean up any temp files on error
-        try {
-            const { videoId } = await request.json().catch(() => ({ videoId: '' }));
-            if (videoId) {
-                fs.readdirSync(tmpDir)
-                    .filter(f => f.startsWith(videoId + '.'))
-                    .forEach(f => { try { fs.unlinkSync(path.join(tmpDir, f)); } catch { /* ignore */ } });
-            }
-        } catch { /* ignore */ }
         return NextResponse.json({ error: `Server Error: ${error.message}` }, { status: 500 });
     }
 }
