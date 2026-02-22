@@ -5,7 +5,7 @@ import os from 'os';
 import fs from 'fs';
 
 /**
- * Serenity Download API (Binary Version - Anti-Bot Fix)
+ * Serenity Download API (Binary Version - Multi-Client Anti-Bot)
  */
 export async function POST(request: Request) {
     try {
@@ -35,9 +35,6 @@ export async function POST(request: Request) {
             try { fs.chmodSync(binaryPath, '755'); } catch (e) { }
         }
 
-        // Anti-bot strategies:
-        // 1. Use the iOS player client which is often less restricted
-        // 2. Disable cache and part files
         const args = [
             ...baseArgs,
             '-f', 'ba[ext=m4a]/ba',
@@ -45,7 +42,10 @@ export async function POST(request: Request) {
             '--no-check-certificates',
             '--no-part',
             '--no-cache-dir',
-            '--extractor-args', 'youtube:player-client=ios',
+            '--extractor-args', 'youtube:player-client=android,ios,mweb',
+            '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            '--add-header', 'Accept-Language:en-US,en;q=0.9',
+            '--referer', 'https://www.youtube.com/',
             '--geo-bypass',
             '--output', outputTemplate,
             `https://www.youtube.com/watch?v=${videoId}`

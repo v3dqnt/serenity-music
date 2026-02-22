@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 
 /**
- * Serenity Streaming API (Binary Version - Anti-Bot Fix)
+ * Serenity Streaming API (Binary Version - Multi-Client Anti-Bot)
  * ----------------------------------------------------
  */
 export async function GET(request: Request) {
@@ -31,9 +31,9 @@ export async function GET(request: Request) {
         try { fs.chmodSync(binaryPath, '755'); } catch (e) { }
     }
 
-    // Anti-bot strategies:
-    // 1. Use the iOS player client which is often less restricted than web
-    // 2. Add bypass headers
+    // Aggressive Anti-bot strategies:
+    // 1. Cycle through multiple player clients (android is currently very strong)
+    // 2. Spoof common browser headers
     const args = [
         ...baseArgs,
         '--format', 'ba[ext=m4a]/ba',
@@ -44,7 +44,10 @@ export async function GET(request: Request) {
         '--no-check-certificates',
         '--no-part',
         '--no-cache-dir',
-        '--extractor-args', 'youtube:player-client=ios',
+        '--extractor-args', 'youtube:player-client=android,ios,mweb',
+        '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        '--add-header', 'Accept-Language:en-US,en;q=0.9',
+        '--referer', 'https://www.youtube.com/',
         '--geo-bypass',
         `https://www.youtube.com/watch?v=${videoId}`
     ];
