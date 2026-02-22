@@ -32,7 +32,7 @@ export async function POST(request: Request) {
             `https://www.youtube.com/watch?v=${videoId}`
         ];
 
-        return new Promise((resolve) => {
+        return new Promise<Response>((resolve) => {
             const ytDlp = spawn(pythonCmd, args);
 
             ytDlp.on('close', async (code) => {
