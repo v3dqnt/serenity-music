@@ -4,30 +4,34 @@ import path from 'path';
 import fs from 'fs';
 
 export async function GET() {
+    const cwd = process.cwd();
     const debugInfo: any = {
-        cwd: process.cwd(),
+        cwd: cwd,
         platform: process.platform,
         env: {
             PATH: process.env.PATH,
             PYTHONPATH: process.env.PYTHONPATH,
             PWD: process.env.PWD,
         },
-        libPythonExists: fs.existsSync(path.join(process.cwd(), 'lib/python')),
-        libPythonContents: fs.existsSync(path.join(process.cwd(), 'lib/python'))
-            ? fs.readdirSync(path.join(process.cwd(), 'lib/python')).slice(0, 10)
+        libPythonExists: fs.existsSync(path.join(cwd, 'lib/python')),
+        libPythonContents: fs.existsSync(path.join(cwd, 'lib/python'))
+            ? fs.readdirSync(path.join(cwd, 'lib/python'))
+            : [],
+        binExists: fs.existsSync(path.join(cwd, 'bin')),
+        binContents: fs.existsSync(path.join(cwd, 'bin'))
+            ? fs.readdirSync(path.join(cwd, 'bin'))
             : [],
     };
 
-    try {
-        debugInfo.pythonVersion = execSync('python3 --version').toString().trim();
-    } catch (e: any) {
-        debugInfo.pythonError = e.message;
-    }
+    const commands = ['python3 --version', 'python --version', 'which python3', 'which python', 'ls -la /usr/bin/python*'];
+    debugInfo.commandResults = {};
 
-    try {
-        debugInfo.pipList = execSync('python3 -m pip list').toString().trim().split('\n').slice(0, 20);
-    } catch (e: any) {
-        debugInfo.pipError = e.message;
+    for (const cmd of commands) {
+        try {
+            debugInfo.commandResults[cmd] = execSync(cmd, { stdio: 'pipe' }).toString().trim();
+        } catch (e: any) {
+            debugInfo.commandResults[cmd] = `Error: ${e.message}`;
+        }
     }
 
     return NextResponse.json(debugInfo);
