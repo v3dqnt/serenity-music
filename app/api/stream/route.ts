@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 
 /**
- * Serenity Streaming API (Binary Version - Multi-Client Anti-Bot)
+ * Serenity Streaming API (Binary Version - Advanced Anti-Bot)
  * ----------------------------------------------------
  */
 export async function GET(request: Request) {
@@ -31,9 +31,10 @@ export async function GET(request: Request) {
         try { fs.chmodSync(binaryPath, '755'); } catch (e) { }
     }
 
-    // Aggressive Anti-bot strategies:
-    // 1. Cycle through multiple player clients (android is currently very strong)
-    // 2. Spoof common browser headers
+    // Advanced Anti-bot strategies:
+    // 1. Force Android Music client (currently very robust)
+    // 2. Force IPv4 (Cloud IPv6 is often banned)
+    // 3. Use an embed URL as the source (sometimes bypasses checks)
     const args = [
         ...baseArgs,
         '--format', 'ba[ext=m4a]/ba',
@@ -44,10 +45,9 @@ export async function GET(request: Request) {
         '--no-check-certificates',
         '--no-part',
         '--no-cache-dir',
-        '--extractor-args', 'youtube:player-client=android,ios,mweb',
-        '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        '--add-header', 'Accept-Language:en-US,en;q=0.9',
-        '--referer', 'https://www.youtube.com/',
+        '--force-ipv4',
+        '--extractor-args', 'youtube:player-client=android_music,android,ios',
+        '--user-agent', 'Mozilla/5.0 (Android 14; Mobile; rv:122.0) Gecko/122.0 Firefox/122.0',
         '--geo-bypass',
         `https://www.youtube.com/watch?v=${videoId}`
     ];
@@ -62,7 +62,6 @@ export async function GET(request: Request) {
     let errorOutput = '';
     ytDlp.stderr.on('data', (data: any) => {
         errorOutput += data.toString();
-        console.error(`[stream] stderr: ${data.toString()}`);
     });
 
     const stream = new ReadableStream({
@@ -79,7 +78,6 @@ export async function GET(request: Request) {
             });
 
             ytDlp.on('error', (err: any) => {
-                console.error(`[stream] process error: ${err.message}`);
                 controller.error(err);
             });
         },

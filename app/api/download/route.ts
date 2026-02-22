@@ -5,7 +5,7 @@ import os from 'os';
 import fs from 'fs';
 
 /**
- * Serenity Download API (Binary Version - Multi-Client Anti-Bot)
+ * Serenity Download API (Binary Version - Advanced Anti-Bot)
  */
 export async function POST(request: Request) {
     try {
@@ -42,10 +42,9 @@ export async function POST(request: Request) {
             '--no-check-certificates',
             '--no-part',
             '--no-cache-dir',
-            '--extractor-args', 'youtube:player-client=android,ios,mweb',
-            '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            '--add-header', 'Accept-Language:en-US,en;q=0.9',
-            '--referer', 'https://www.youtube.com/',
+            '--force-ipv4',
+            '--extractor-args', 'youtube:player-client=android_music,android,ios',
+            '--user-agent', 'Mozilla/5.0 (Android 14; Mobile; rv:122.0) Gecko/122.0 Firefox/122.0',
             '--geo-bypass',
             '--output', outputTemplate,
             `https://www.youtube.com/watch?v=${videoId}`
