@@ -8,6 +8,7 @@ import fs from 'fs';
  * Serenity Download API (Python Reversion)
  * ----------------------------------------
  * Reverted to yt-dlp via Python as requested.
+ * Optimized for Vercel compatibility by using a bundled binary.
  */
 export async function POST(request: Request) {
     try {
@@ -21,15 +22,33 @@ export async function POST(request: Request) {
 
         const outputTemplate = path.join(tmpDir, `${videoId}.%(ext)s`);
 
-        // Use local binary in production, fallback to system command
-        const localBin = path.join(process.cwd(), 'bin', 'yt-dlp');
-        const ytDlpPath = fs.existsSync(localBin) ? localBin : (process.platform === 'win32' ? 'python' : 'python3');
+        // Binary discovery
+        const localBinPaths = [
+            path.join(process.cwd(), 'lib/bin/yt-dlp'),
+            path.join(process.cwd(), 'bin/yt-dlp'),
+        ];
 
-        const isBinary = ytDlpPath === localBin;
-        const spawnCmd = ytDlpPath;
+        let ytDlpPath = '';
+        for (const p of localBinPaths) {
+            if (fs.existsSync(p)) {
+                ytDlpPath = p;
+                break;
+            }
+        }
+
+        const isBinary = ytDlpPath !== '';
+        const spawnCmd = isBinary ? ytDlpPath : (process.platform === 'win32' ? 'python' : 'python3');
         const baseArgs = isBinary ? [] : ['-m', 'yt_dlp'];
 
-        console.log(`[download] Fetching ${videoId} using ${ytDlpPath}`);
+        console.log(`[download] Attempting to spawn: ${spawnCmd} for ${videoId}`);
+
+        if (isBinary && process.platform !== 'win32') {
+            try {
+                fs.chmodSync(ytDlpPath, '755');
+            } catch (e) {
+                console.warn(`[download] Could not chmod 755 ${ytDlpPath}:`, e);
+            }
+        }
 
         const args = [
             ...baseArgs,
@@ -40,9 +59,15 @@ export async function POST(request: Request) {
         ];
 
         return new Promise<Response>((resolve) => {
-            const ytDlp = spawn(spawnCmd, args);
+            let ytDlp: any;
+            try {
+                ytDlp = spawn(spawnCmd, args);
+            } catch (e: any) {
+                console.error(`[download] Spawn failed ${spawnCmd}:`, e);
+                return resolve(NextResponse.json({ error: `Spawn failed: ${e.message}` }, { status: 500 }));
+            }
 
-            ytDlp.on('close', async (code) => {
+            ytDlp.on('close', async (code: number) => {
                 if (code !== 0) {
                     console.error(`[download] yt-dlp exited with code ${code}`);
                     return resolve(NextResponse.json({ error: 'Download failed' }, { status: 500 }));
@@ -71,9 +96,9 @@ export async function POST(request: Request) {
                 }));
             });
 
-            ytDlp.on('error', (err) => {
-                console.error(`[download] Spawn error:`, err);
-                resolve(NextResponse.json({ error: `Spawn error: ${err.message}` }, { status: 500 }));
+            ytDlp.on('error', (err: any) => {
+                console.error(`[download] Process error:`, err);
+                resolve(NextResponse.json({ error: `Process error: ${err.message}` }, { status: 500 }));
             });
         });
 
