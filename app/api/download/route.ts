@@ -5,9 +5,9 @@ import os from 'os';
 import fs from 'fs';
 
 /**
- * Serenity Download API
- * ---------------------
- * Uses the same logic as local development but updated for Vercel.
+ * Serenity Download API (Python Reversion V4)
+ * -------------------------------------------
+ * Uses yt-dlp via PYTHONPATH for maximum reliability on Vercel.
  */
 export async function POST(request: Request) {
     try {
@@ -22,11 +22,27 @@ export async function POST(request: Request) {
         const outputTemplate = path.join(tmpDir, `${videoId}.%(ext)s`);
 
         const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-        const pythonLibPath = path.resolve(process.cwd(), 'lib/python');
+        const cwd = process.cwd();
+
+        // Match the same potential paths as the streaming route
+        const potentialPaths = [
+            path.join(cwd, 'lib/python'),
+            path.join(cwd, '.next/server/lib/python'),
+            path.join(cwd, '..', 'lib/python'),
+            '/var/task/lib/python'
+        ];
+
+        let pythonLibPath = potentialPaths[0];
+        for (const p of potentialPaths) {
+            if (fs.existsSync(p)) {
+                pythonLibPath = p;
+                break;
+            }
+        }
 
         const env = {
             ...process.env,
-            PYTHONPATH: pythonLibPath,
+            PYTHONPATH: `${pythonLibPath}${path.delimiter}${process.env.PYTHONPATH || ''}`,
             PYTHONUNBUFFERED: '1'
         };
 
@@ -36,12 +52,25 @@ export async function POST(request: Request) {
             '-m', 'yt_dlp',
             '-f', 'bestaudio[ext=m4a]/bestaudio',
             '--no-playlist',
+            '--no-warnings',
+            '--no-part',               // Crucial for direct processing
+            '--no-check-certificates',
             '--output', outputTemplate,
             `https://www.youtube.com/watch?v=${videoId}`
         ];
 
         return new Promise<Response>((resolve) => {
-            const ytDlp = spawn(pythonCmd, args, { env });
+            let ytDlp: any;
+            try {
+                ytDlp = spawn(pythonCmd, args, { env });
+            } catch (e: any) {
+                console.error(`[download] Spawn failure:`, e);
+                return resolve(NextResponse.json({ error: `Spawn failed: ${e.message}` }, { status: 500 }));
+            }
+
+            ytDlp.stderr.on('data', (data: any) => {
+                console.error(`[download] yt-dlp stderr: ${data.toString()}`);
+            });
 
             ytDlp.on('close', async (code: number) => {
                 if (code !== 0) {
@@ -61,6 +90,8 @@ export async function POST(request: Request) {
 
                 // Cleanup
                 fs.unlinkSync(finalPath);
+
+                console.log(`[download] Successfully read ${buf.length} bytes for ${videoId}`);
 
                 resolve(new Response(new Uint8Array(buf), {
                     headers: {
