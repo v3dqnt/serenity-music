@@ -5,7 +5,7 @@ import os from 'os';
 import fs from 'fs';
 
 /**
- * Serenity Download API (Binary Version - Cookie Enabled)
+ * Serenity Download API (Binary Version - TV Client Bypass)
  */
 export async function POST(request: Request) {
     try {
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
             '--no-part',
             '--no-cache-dir',
             '--force-ipv4',
-            '--extractor-args', 'youtube:player-client=ios,web,mweb',
+            '--extractor-args', 'youtube:player-client=tv,mweb,ios',
             '--geo-bypass',
             '--output', outputTemplate,
             `https://www.youtube.com/watch?v=${videoId}`

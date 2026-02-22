@@ -4,7 +4,8 @@ import path from 'path';
 import fs from 'fs';
 
 /**
- * Serenity Streaming API (Binary Version - Cookie Enabled)
+ * Serenity Streaming API (Binary Version - TV Client Bypass)
+ * ----------------------------------------------------
  */
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -43,14 +44,12 @@ export async function GET(request: Request) {
         '--no-part',
         '--no-cache-dir',
         '--force-ipv4',
-        '--extractor-args', 'youtube:player-client=ios,web,mweb',
+        '--extractor-args', 'youtube:player-client=tv,mweb,ios',
         '--geo-bypass',
         `https://www.youtube.com/watch?v=${videoId}`
     ];
 
-    // Auto-inject cookies if the file exists
     if (hasCookies) {
-        console.log(`[stream] Using cookies from ${cookiesPath}`);
         args.push('--cookies', cookiesPath);
     }
 
