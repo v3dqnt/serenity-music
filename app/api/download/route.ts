@@ -5,10 +5,9 @@ import os from 'os';
 import fs from 'fs';
 
 /**
- * Serenity Download API (Python Reversion)
+ * Serenity Download API (Python Reversion V2)
  * ----------------------------------------
- * Reverted to yt-dlp via Python as requested.
- * Optimized for Vercel compatibility by using a bundled binary.
+ * Uses yt-dlp installed in a local python directory for Vercel compatibility.
  */
 export async function POST(request: Request) {
     try {
@@ -22,36 +21,19 @@ export async function POST(request: Request) {
 
         const outputTemplate = path.join(tmpDir, `${videoId}.%(ext)s`);
 
-        // Binary discovery
-        const localBinPaths = [
-            path.join(process.cwd(), 'lib/bin/yt-dlp'),
-            path.join(process.cwd(), 'bin/yt-dlp'),
-        ];
+        const pythonLibPath = path.join(process.cwd(), 'lib/python');
+        const spawnCmd = process.platform === 'win32' ? 'python' : 'python3';
 
-        let ytDlpPath = '';
-        for (const p of localBinPaths) {
-            if (fs.existsSync(p)) {
-                ytDlpPath = p;
-                break;
-            }
-        }
+        const env = {
+            ...process.env,
+            PYTHONPATH: pythonLibPath,
+            PYTHONUNBUFFERED: '1'
+        };
 
-        const isBinary = ytDlpPath !== '';
-        const spawnCmd = isBinary ? ytDlpPath : (process.platform === 'win32' ? 'python' : 'python3');
-        const baseArgs = isBinary ? [] : ['-m', 'yt_dlp'];
-
-        console.log(`[download] Attempting to spawn: ${spawnCmd} for ${videoId}`);
-
-        if (isBinary && process.platform !== 'win32') {
-            try {
-                fs.chmodSync(ytDlpPath, '755');
-            } catch (e) {
-                console.warn(`[download] Could not chmod 755 ${ytDlpPath}:`, e);
-            }
-        }
+        console.log(`[download] Spawning ${spawnCmd} for ${videoId}`);
 
         const args = [
-            ...baseArgs,
+            '-m', 'yt_dlp',
             '-f', 'bestaudio[ext=m4a]/bestaudio',
             '--no-playlist',
             '--output', outputTemplate,
@@ -61,9 +43,9 @@ export async function POST(request: Request) {
         return new Promise<Response>((resolve) => {
             let ytDlp: any;
             try {
-                ytDlp = spawn(spawnCmd, args);
+                ytDlp = spawn(spawnCmd, args, { env });
             } catch (e: any) {
-                console.error(`[download] Spawn failed ${spawnCmd}:`, e);
+                console.error(`[download] Spawn failed:`, e);
                 return resolve(NextResponse.json({ error: `Spawn failed: ${e.message}` }, { status: 500 }));
             }
 

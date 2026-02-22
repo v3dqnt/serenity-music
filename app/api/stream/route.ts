@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
-import { existsSync, chmodSync } from 'fs';
 
 /**
- * Serenity Streaming API (Python Reversion)
+ * Serenity Streaming API (Python Reversion V2)
  * ---------------------------------------
- * Reverted to yt-dlp via Python as requested.
- * Optimized for Vercel compatibility by using a bundled binary.
+ * Uses yt-dlp installed in a local python directory for Vercel compatibility.
  */
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -17,40 +15,21 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
     }
 
-    // Use local binary in production (downloaded in build step), fallback to system command
-    // We check both the old 'bin' and the new 'lib/bin' just in case
-    const localBinPaths = [
-        path.join(process.cwd(), 'lib/bin/yt-dlp'),
-        path.join(process.cwd(), 'bin/yt-dlp'),
-        // On Vercel, the file might be in a different relative location
-        path.join(process.cwd(), '.next/server/vendor/yt-dlp'),
-    ];
+    const pythonLibPath = path.join(process.cwd(), 'lib/python');
+    const spawnCmd = process.platform === 'win32' ? 'python' : 'python3';
 
-    let ytDlpPath = '';
-    for (const p of localBinPaths) {
-        if (existsSync(p)) {
-            ytDlpPath = p;
-            break;
-        }
-    }
+    // Set PYTHONPATH so python can find the locally installed yt-dlp
+    const env = {
+        ...process.env,
+        PYTHONPATH: pythonLibPath,
+        // Ensure stdout/stderr are not buffered so we get data immediately
+        PYTHONUNBUFFERED: '1'
+    };
 
-    const isBinary = ytDlpPath !== '';
-    const spawnCmd = isBinary ? ytDlpPath : (process.platform === 'win32' ? 'python' : 'python3');
-    const baseArgs = isBinary ? [] : ['-m', 'yt_dlp'];
-
-    console.log(`[stream] Attempting to spawn: ${spawnCmd} ${baseArgs.join(' ')} for ${videoId}`);
-
-    // Ensure it's executable if it's a binary
-    if (isBinary && process.platform !== 'win32') {
-        try {
-            chmodSync(ytDlpPath, '755');
-        } catch (e) {
-            console.warn(`[stream] Could not chmod 755 ${ytDlpPath}:`, e);
-        }
-    }
+    console.log(`[stream] Spawning ${spawnCmd} with PYTHONPATH=${pythonLibPath} for ${videoId}`);
 
     const args = [
-        ...baseArgs,
+        '-m', 'yt_dlp',
         '--format', 'bestaudio[ext=m4a]/bestaudio',
         '--output', '-',
         '--quiet',
@@ -61,10 +40,10 @@ export async function GET(request: Request) {
 
     let ytDlp: any;
     try {
-        ytDlp = spawn(spawnCmd, args);
+        ytDlp = spawn(spawnCmd, args, { env });
     } catch (e: any) {
-        console.error(`[stream] Failed to spawn ${spawnCmd}:`, e);
-        return NextResponse.json({ error: `Spawn failed: ${e.message}`, path: ytDlpPath }, { status: 500 });
+        console.error(`[stream] Failed to spawn:`, e);
+        return NextResponse.json({ error: `Spawn failed: ${e.message}` }, { status: 500 });
     }
 
     const stream = new ReadableStream({
@@ -87,7 +66,7 @@ export async function GET(request: Request) {
             });
         },
         cancel() {
-            ytDlp.kill();
+            try { ytDlp.kill(); } catch { }
         }
     });
 
