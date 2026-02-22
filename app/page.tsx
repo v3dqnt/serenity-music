@@ -1,44 +1,106 @@
-import Link from "next/link";
+'use client'
+
+import Link from "next/link"
+import { motion } from "framer-motion"
+import { Play, MusicNotes, Waves, ShieldCheck } from "@phosphor-icons/react"
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-[var(--color-cream)] text-[var(--color-obsidian)] flex flex-col items-center justify-center relative overflow-hidden">
-      {/* Background Ambience */}
-      <div className="absolute inset-0 w-full h-full pointer-events-none opacity-40 mix-blend-multiply">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[var(--color-fire)]/10 rounded-full blur-[150px] animate-pulse"></div>
-        <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] bg-[var(--color-beige)] blur-[100px] -translate-x-32 -translate-y-24"></div>
+    <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center relative overflow-hidden">
+      {/* ── Background Ambience ────────────────────────────────────────── */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="liquid-orb absolute top-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full bg-white/10" />
+        <div className="liquid-orb absolute bottom-[-15%] left-[-10%] w-[500px] h-[500px] rounded-full bg-white/5" style={{ animationDelay: '-5s' }} />
+        <div className="liquid-orb absolute top-[20%] left-[20%] w-[700px] h-[700px] rounded-full bg-white/5" style={{ animationDelay: '-12s' }} />
       </div>
 
-      <div className="relative z-10 text-center space-y-12 p-6 max-w-5xl">
-        <h1 className="text-8xl md:text-9xl font-black tracking-tighter text-[var(--color-obsidian)] opacity-0 animate-in fade-in slide-in-from-bottom-5 duration-1000 fill-mode-forwards select-none">
-          SERENITY
-        </h1>
+      {/* ── Hero Section ─────────────────────────────────────────────── */}
+      <div className="relative z-10 w-full max-w-5xl mx-auto px-6 py-20 flex flex-col items-center text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.2, ease: "circOut" }}
+        >
+          <h1 className="text-8xl md:text-[160px] font-black tracking-tighter leading-none mb-4 select-none">
+            SERENITY
+          </h1>
+        </motion.div>
 
-        <div className="max-w-2xl mx-auto space-y-2 opacity-0 animate-in fade-in slide-in-from-bottom-5 duration-1000 delay-300 fill-mode-forwards">
-          <h2 className="text-3xl text-[var(--color-fire)] font-bold tracking-tight">Your High-Fidelity Sanctuary</h2>
-          <p className="text-xl text-[var(--color-charcoal)]/80 font-medium leading-relaxed">
-            A minimalist, local-first music experience designed for focus and clarity.
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.8 }}
+          className="max-w-2xl"
+        >
+          <p className="text-sm md:text-xl font-bold uppercase tracking-[0.4em] text-white/40 mb-12">
+            Your High-Fidelity Sanctuary
           </p>
-        </div>
 
-        <div className="pt-8 opacity-0 animate-in fade-in slide-in-from-bottom-5 duration-1000 delay-500 fill-mode-forwards">
-          <Link
-            href="/auth"
-            className="group relative inline-flex items-center justify-center px-10 py-5 font-bold text-lg text-[var(--color-cream)] bg-[var(--color-obsidian)] hover:bg-[var(--color-fire)] rounded-2xl overflow-hidden transition-all duration-300 active:scale-95 shadow-lg hover:shadow-xl"
-          >
-            <span className="relative z-10 flex items-center gap-3 tracking-wide uppercase">
-              Enter Serenity
-              <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </span>
-          </Link>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-16">
+            <Link
+              href="/auth"
+              className="group relative flex items-center gap-3 px-10 py-5 rounded-3xl bg-white text-black font-black text-sm uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-[0_20px_60px_rgba(255,255,255,0.2)]"
+            >
+              <Play weight="fill" className="w-5 h-5" />
+              Enter Sanctuary
+            </Link>
+
+            <div className="glass px-6 py-5 rounded-3xl flex items-center gap-3 border border-white/10">
+              <ShieldCheck className="w-5 h-5 text-white/60" />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
+                serenity-olive.vercel.app
+              </span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ── Features Grid ───────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mt-12">
+          <FeatureCard
+            icon={<MusicNotes className="w-6 h-6" />}
+            title="Pure Audio"
+            desc="Experience music as it was meant to be heard with high-fidelity streams."
+          />
+          <FeatureCard
+            icon={<Waves className="w-6 h-6" />}
+            title="Sonic Bloom"
+            desc="Advanced audio processing for clarity and deep, textured bass."
+          />
+          <FeatureCard
+            icon={<ShieldCheck className="w-6 h-6" />}
+            title="Local Primary"
+            desc="Your library is cached locally for instant, offline-available playback."
+          />
         </div>
       </div>
 
-      <footer className="absolute bottom-8 text-[var(--color-charcoal)] text-sm font-semibold tracking-wider uppercase">
-        © {new Date().getFullYear()} Serenity Project
+      {/* ── Footer ─────────────────────────────────────────────────── */}
+      <footer className="relative z-10 py-12 text-center">
+        <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/20">
+          Deployed to Serenity Olive &bull; 2026
+        </p>
       </footer>
     </main>
-  );
+  )
+}
+
+function FeatureCard({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="glass-panel p-8 rounded-[40px] text-left border border-white/5 hover:border-white/20 transition-all group"
+    >
+      <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6 group-hover:bg-white text-white group-hover:text-black transition-all">
+        {icon}
+      </div>
+      <h3 className="text-xl font-black uppercase tracking-tight mb-3 text-white">
+        {title}
+      </h3>
+      <p className="text-xs font-medium leading-relaxed text-white/40">
+        {desc}
+      </p>
+    </motion.div>
+  )
 }
