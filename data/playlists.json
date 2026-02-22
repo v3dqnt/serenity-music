@@ -1,0 +1,33 @@
+[
+  {
+    "id": "1771490573813",
+    "name": "Test",
+    "tracks": [
+      {
+        "id": "2SUwOgmvzK4",
+        "title": "Tame Impala - The Less I Know The Better (Audio)",
+        "channelTitle": "tameimpalaVEVO",
+        "thumbnail": "https://i.ytimg.com/vi/2SUwOgmvzK4/mqdefault.jpg",
+        "url": "/music/2SUwOgmvzK4.m4a",
+        "addedAt": "2026-02-18T18:51:55.606Z"
+      },
+      {
+        "id": "6JHu3b-pbh8",
+        "title": "Thinkin Bout You",
+        "channelTitle": "Blonded",
+        "thumbnail": "https://i.ytimg.com/vi_webp/6JHu3b-pbh8/maxresdefault.webp",
+        "url": "/music/6JHu3b-pbh8.m4a",
+        "addedAt": "2026-02-18T18:23:23.425Z"
+      },
+      {
+        "id": "H58vbez_m4E",
+        "title": "Kendrick Lamar - Not Like Us",
+        "channelTitle": "Kendrick Lamar",
+        "thumbnail": "https://i.ytimg.com/vi/H58vbez_m4E/maxresdefault.jpg",
+        "url": "/music/H58vbez_m4E.webm",
+        "addedAt": "2026-02-18T17:33:02.359Z"
+      }
+    ],
+    "createdAt": "2026-02-19T08:42:53.813Z"
+  }
+]
