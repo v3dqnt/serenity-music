@@ -4,7 +4,8 @@ import path from 'path';
 import fs from 'fs';
 
 /**
- * Serenity Streaming API (Binary Version - Final Polish)
+ * Serenity Streaming API (Binary Version - Anti-Bot Fix)
+ * ----------------------------------------------------
  */
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -17,11 +18,9 @@ export async function GET(request: Request) {
     const binaryPath = path.join(process.cwd(), 'lib/yt-dlp');
     const hasBinary = fs.existsSync(binaryPath);
 
-    // Choose command
     const spawnCmd = hasBinary ? binaryPath : (process.platform === 'win32' ? 'python' : 'python3');
     const baseArgs = !hasBinary ? ['-m', 'yt_dlp'] : [];
 
-    // Environment setup to prevent yt-dlp from trying to write to read-only home
     const env = {
         ...process.env,
         HOME: '/tmp',
@@ -32,11 +31,12 @@ export async function GET(request: Request) {
         try { fs.chmodSync(binaryPath, '755'); } catch (e) { }
     }
 
-    console.log(`[stream] Spawning ${spawnCmd} for ${videoId}`);
-
+    // Anti-bot strategies:
+    // 1. Use the iOS player client which is often less restricted than web
+    // 2. Add bypass headers
     const args = [
         ...baseArgs,
-        '--format', 'ba[ext=m4a]/ba', // Request single-file audio to avoid ffmpeg requirement
+        '--format', 'ba[ext=m4a]/ba',
         '--output', '-',
         '--quiet',
         '--no-playlist',
@@ -44,6 +44,8 @@ export async function GET(request: Request) {
         '--no-check-certificates',
         '--no-part',
         '--no-cache-dir',
+        '--extractor-args', 'youtube:player-client=ios',
+        '--geo-bypass',
         `https://www.youtube.com/watch?v=${videoId}`
     ];
 
@@ -67,9 +69,7 @@ export async function GET(request: Request) {
             });
 
             ytDlp.on('close', (code: number) => {
-                console.log(`[stream] exited with ${code}`);
                 if (code !== 0) {
-                    // Log the error but we've already sent the Response
                     console.error(`[stream] Runtime error for ${videoId}: ${errorOutput}`);
                 }
                 controller.close();

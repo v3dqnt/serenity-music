@@ -5,7 +5,7 @@ import os from 'os';
 import fs from 'fs';
 
 /**
- * Serenity Download API (Binary Version - Final Polish)
+ * Serenity Download API (Binary Version - Anti-Bot Fix)
  */
 export async function POST(request: Request) {
     try {
@@ -35,6 +35,9 @@ export async function POST(request: Request) {
             try { fs.chmodSync(binaryPath, '755'); } catch (e) { }
         }
 
+        // Anti-bot strategies:
+        // 1. Use the iOS player client which is often less restricted
+        // 2. Disable cache and part files
         const args = [
             ...baseArgs,
             '-f', 'ba[ext=m4a]/ba',
@@ -42,6 +45,8 @@ export async function POST(request: Request) {
             '--no-check-certificates',
             '--no-part',
             '--no-cache-dir',
+            '--extractor-args', 'youtube:player-client=ios',
+            '--geo-bypass',
             '--output', outputTemplate,
             `https://www.youtube.com/watch?v=${videoId}`
         ];
@@ -81,13 +86,11 @@ export async function POST(request: Request) {
                         },
                     }));
                 } catch (e: any) {
-                    console.error(`[download] Read error: ${e.message}`);
                     resolve(NextResponse.json({ error: `Read error: ${e.message}` }, { status: 500 }));
                 }
             });
 
             ytDlp.on('error', (err: any) => {
-                console.error(`[download] Spawn error: ${err.message}`);
                 resolve(NextResponse.json({ error: `Spawn error: ${err.message}` }, { status: 500 }));
             });
         });
