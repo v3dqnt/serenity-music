@@ -20,12 +20,19 @@ export async function POST(request: Request) {
         if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
         const outputTemplate = path.join(tmpDir, `${videoId}.%(ext)s`);
-        const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
 
-        console.log(`[download] Fetching ${videoId} using ${pythonCmd}`);
+        // Use local binary in production, fallback to system command
+        const localBin = path.join(process.cwd(), 'bin', 'yt-dlp');
+        const ytDlpPath = fs.existsSync(localBin) ? localBin : (process.platform === 'win32' ? 'python' : 'python3');
+
+        const isBinary = ytDlpPath === localBin;
+        const spawnCmd = ytDlpPath;
+        const baseArgs = isBinary ? [] : ['-m', 'yt_dlp'];
+
+        console.log(`[download] Fetching ${videoId} using ${ytDlpPath}`);
 
         const args = [
-            '-m', 'yt_dlp',
+            ...baseArgs,
             '-f', 'bestaudio[ext=m4a]/bestaudio',
             '--no-playlist',
             '--output', outputTemplate,
@@ -33,7 +40,7 @@ export async function POST(request: Request) {
         ];
 
         return new Promise<Response>((resolve) => {
-            const ytDlp = spawn(pythonCmd, args);
+            const ytDlp = spawn(spawnCmd, args);
 
             ytDlp.on('close', async (code) => {
                 if (code !== 0) {

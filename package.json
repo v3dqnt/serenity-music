@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "python3 -m pip install yt-dlp --break-system-packages && next build --turbopack",
+    "build": "mkdir -p bin && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o bin/yt-dlp && chmod +x bin/yt-dlp && next build --turbopack",
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write"
