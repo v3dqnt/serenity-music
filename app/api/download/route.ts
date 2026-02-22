@@ -5,7 +5,7 @@ import os from 'os';
 import fs from 'fs';
 
 /**
- * Serenity Download API (Binary Version - Advanced Anti-Bot)
+ * Serenity Download API (Binary Version - Cookie Enabled)
  */
 export async function POST(request: Request) {
     try {
@@ -20,7 +20,9 @@ export async function POST(request: Request) {
         const outputTemplate = path.join(tmpDir, `${videoId}.%(ext)s`);
 
         const binaryPath = path.join(process.cwd(), 'lib/yt-dlp');
+        const cookiesPath = path.join(process.cwd(), 'lib/cookies.txt');
         const hasBinary = fs.existsSync(binaryPath);
+        const hasCookies = fs.existsSync(cookiesPath);
 
         const spawnCmd = hasBinary ? binaryPath : (process.platform === 'win32' ? 'python' : 'python3');
         const baseArgs = !hasBinary ? ['-m', 'yt_dlp'] : [];
@@ -43,12 +45,15 @@ export async function POST(request: Request) {
             '--no-part',
             '--no-cache-dir',
             '--force-ipv4',
-            '--extractor-args', 'youtube:player-client=android_music,android,ios',
-            '--user-agent', 'Mozilla/5.0 (Android 14; Mobile; rv:122.0) Gecko/122.0 Firefox/122.0',
+            '--extractor-args', 'youtube:player-client=ios,web,mweb',
             '--geo-bypass',
             '--output', outputTemplate,
             `https://www.youtube.com/watch?v=${videoId}`
         ];
+
+        if (hasCookies) {
+            args.push('--cookies', cookiesPath);
+        }
 
         return new Promise<Response>((resolve) => {
             const ytDlp = spawn(spawnCmd, args, { env });

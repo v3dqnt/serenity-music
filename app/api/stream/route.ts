@@ -4,8 +4,7 @@ import path from 'path';
 import fs from 'fs';
 
 /**
- * Serenity Streaming API (Binary Version - Advanced Anti-Bot)
- * ----------------------------------------------------
+ * Serenity Streaming API (Binary Version - Cookie Enabled)
  */
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -16,7 +15,9 @@ export async function GET(request: Request) {
     }
 
     const binaryPath = path.join(process.cwd(), 'lib/yt-dlp');
+    const cookiesPath = path.join(process.cwd(), 'lib/cookies.txt');
     const hasBinary = fs.existsSync(binaryPath);
+    const hasCookies = fs.existsSync(cookiesPath);
 
     const spawnCmd = hasBinary ? binaryPath : (process.platform === 'win32' ? 'python' : 'python3');
     const baseArgs = !hasBinary ? ['-m', 'yt_dlp'] : [];
@@ -31,10 +32,6 @@ export async function GET(request: Request) {
         try { fs.chmodSync(binaryPath, '755'); } catch (e) { }
     }
 
-    // Advanced Anti-bot strategies:
-    // 1. Force Android Music client (currently very robust)
-    // 2. Force IPv4 (Cloud IPv6 is often banned)
-    // 3. Use an embed URL as the source (sometimes bypasses checks)
     const args = [
         ...baseArgs,
         '--format', 'ba[ext=m4a]/ba',
@@ -46,11 +43,16 @@ export async function GET(request: Request) {
         '--no-part',
         '--no-cache-dir',
         '--force-ipv4',
-        '--extractor-args', 'youtube:player-client=android_music,android,ios',
-        '--user-agent', 'Mozilla/5.0 (Android 14; Mobile; rv:122.0) Gecko/122.0 Firefox/122.0',
+        '--extractor-args', 'youtube:player-client=ios,web,mweb',
         '--geo-bypass',
         `https://www.youtube.com/watch?v=${videoId}`
     ];
+
+    // Auto-inject cookies if the file exists
+    if (hasCookies) {
+        console.log(`[stream] Using cookies from ${cookiesPath}`);
+        args.push('--cookies', cookiesPath);
+    }
 
     let ytDlp: any;
     try {
