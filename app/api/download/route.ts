@@ -5,9 +5,9 @@ import os from 'os';
 import fs from 'fs';
 
 /**
- * Serenity Download API (Python Reversion V2)
- * ----------------------------------------
- * Uses yt-dlp installed in a local python directory for Vercel compatibility.
+ * Serenity Download API (Python Reversion V3)
+ * -------------------------------------------
+ * Uses yt-dlp via PYTHONPATH for maximum reliability on Vercel.
  */
 export async function POST(request: Request) {
     try {
@@ -21,21 +21,23 @@ export async function POST(request: Request) {
 
         const outputTemplate = path.join(tmpDir, `${videoId}.%(ext)s`);
 
-        const pythonLibPath = path.join(process.cwd(), 'lib/python');
-        const spawnCmd = process.platform === 'win32' ? 'python' : 'python3';
+        const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+        const rootPath = process.env.PWD || process.cwd();
+        const pythonLibPath = path.join(rootPath, 'lib/python');
 
         const env = {
             ...process.env,
-            PYTHONPATH: pythonLibPath,
+            PYTHONPATH: `${pythonLibPath}${path.delimiter}${process.env.PYTHONPATH || ''}`,
             PYTHONUNBUFFERED: '1'
         };
 
-        console.log(`[download] Spawning ${spawnCmd} for ${videoId}`);
+        console.log(`[download] Spawning ${pythonCmd} -m yt_dlp for ${videoId}`);
 
         const args = [
             '-m', 'yt_dlp',
             '-f', 'bestaudio[ext=m4a]/bestaudio',
             '--no-playlist',
+            '--no-check-certificates',
             '--output', outputTemplate,
             `https://www.youtube.com/watch?v=${videoId}`
         ];
@@ -43,9 +45,9 @@ export async function POST(request: Request) {
         return new Promise<Response>((resolve) => {
             let ytDlp: any;
             try {
-                ytDlp = spawn(spawnCmd, args, { env });
+                ytDlp = spawn(pythonCmd, args, { env });
             } catch (e: any) {
-                console.error(`[download] Spawn failed:`, e);
+                console.error(`[download] Spawn failed ${pythonCmd}:`, e);
                 return resolve(NextResponse.json({ error: `Spawn failed: ${e.message}` }, { status: 500 }));
             }
 
