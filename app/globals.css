@@ -231,30 +231,30 @@ h3,
   .glass-panel,
   .liquid-glass,
   .glass-card {
-    backdrop-filter: blur(8px) saturate(120%) !important;
-    -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(20, 20, 25, 0.92) !important;
   }
 
   .liquid-orb {
     animation: none !important;
-    opacity: 0.25 !important;
-    filter: blur(60px) !important;
+    display: none !important;
   }
 
   /* Reduce shadow complexity on mobile */
   .shadow-2xl,
   .shadow-3xl {
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  /* Disable all transitions on mobile for instant feel */
+  * {
+    transition-duration: 0.1s !important;
   }
 }
 
-/* ── Hardware Acceleration Hints ── */
-.glass,
-.glass-panel,
-.liquid-glass,
-.glass-card,
-.motion-div,
-.liquid-orb {
+/* ── Hardware Acceleration Hints (Use sparingly on mobile) ── */
+.motion-div {
   will-change: transform, opacity;
 }
 

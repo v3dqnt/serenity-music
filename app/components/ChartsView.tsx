@@ -47,6 +47,14 @@ export default function ChartsView({ onPlay, currentTrackId, loadingTrackId }: C
     const [loading, setLoading] = useState(true)
     const [region, setRegion] = useState('US')
     const [source, setSource] = useState('youtube')
+    const [isMobile, setIsMobile] = useState(false)
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768)
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        return () => window.removeEventListener('resize', checkMobile)
+    }, [])
 
     useEffect(() => {
         const fetchCharts = async () => {
@@ -125,7 +133,7 @@ export default function ChartsView({ onPlay, currentTrackId, loadingTrackId }: C
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <AnimatePresence mode="popLayout">
+                    <AnimatePresence mode={isMobile ? undefined : "popLayout"}>
                         {tracks.map((track, idx) => {
                             const views = formatViews(track.viewCount)
                             const isSelected = (currentTrackId === track.id && track.id !== null) ||
@@ -134,9 +142,9 @@ export default function ChartsView({ onPlay, currentTrackId, loadingTrackId }: C
                             return (
                                 <motion.div
                                     key={`${source}-${idx}-${track.id || 'stub'}`}
-                                    initial={{ opacity: 0, scale: 0.98 }}
+                                    initial={isMobile ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
                                     animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: Math.min(idx * 0.03, 0.4) }}
+                                    transition={{ delay: isMobile ? 0 : Math.min(idx * 0.03, 0.4) }}
                                     className={`group relative p-4 rounded-[32px] glass-card border flex items-center gap-5 cursor-pointer hover:bg-white/5 hover:translate-y-[-2px] ${isSelected ? 'border-white/30 bg-white/10' : 'border-white/5'
                                         }`}
                                     onClick={() => onPlay(track)}

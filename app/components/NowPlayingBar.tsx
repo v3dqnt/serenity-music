@@ -423,7 +423,7 @@ function MiniPlayer({
                 className={`flex-1 min-w-0 flex items-center bg-white/[0.03] border-t border-white/[0.12] border-x border-white/[0.05] rounded-[40px] ${isMobile ? 'px-3 py-1.5 gap-3 border-none bg-transparent' : 'px-4 py-2 gap-4'} hover:bg-white/[0.06] transition-all cursor-pointer group/island ${isMobile ? 'max-w-none' : 'max-w-[440px]'} shadow-[inset_0_0_0_1px_rgba(255,255,255,0.02)]`}
             >
                 <motion.div
-                    layoutId="track-art"
+                    layoutId={isMobile ? undefined : "track-art"}
                     className={`relative shrink-0 ${isMobile ? 'w-10 h-10' : 'w-9 h-9'} rounded-full shadow-xl overflow-hidden border border-white/10`}
                 >
                     <img src={track.thumbnail} className="w-full h-full object-cover" alt="" />
@@ -516,7 +516,9 @@ function FullScreenPlayer({
             </button>
 
             <motion.div
-                layoutId="track-art"
+                layoutId={isMobile ? undefined : "track-art"}
+                initial={isMobile ? { opacity: 0, scale: 0.9 } : false}
+                animate={isMobile ? { opacity: 1, scale: 1 } : {}}
                 className={`relative shrink-0 ${isMobile ? 'w-[280px] h-[280px] rounded-[48px]' : 'w-[360px] h-[360px] rounded-[64px]'} shadow-[0_40px_100px_rgba(0,0,0,0.7)] overflow-hidden border-[5px] border-white/20`}
             >
                 <img src={track.thumbnail} className="w-full h-full object-cover" alt="" />
