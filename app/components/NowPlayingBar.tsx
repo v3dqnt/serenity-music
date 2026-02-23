@@ -60,9 +60,6 @@ export default function NowPlayingBar({
     const [hasTriggeredAlmostDone, setHasTriggeredAlmostDone] = useState(false)
 
     const [voiceClarity, setVoiceClarity] = useState(false)
-    const [bassBoost, setBassBoost] = useState(false)
-    const [spatial, setSpatial] = useState(false)
-    const [rawMode, setRawMode] = useState(false)
     const [repeat, setRepeat] = useState<'off' | 'all' | 'one'>('off')
 
     const sourceRef = useRef<MediaElementAudioSourceNode | null>(null)
@@ -161,33 +158,31 @@ export default function NowPlayingBar({
         const audioEl = audioRef.current as AudioEnhancedElement | null
         const ctx = audioEl?._audioCtx
         if (clarityFilterRef.current && airFilterRef.current && bassFilterRef.current && compressorRef.current && pannerRef.current && masterGainRef.current && ctx) {
-            if (rawMode) {
-                // RAW SOUND: Completely flat and zero compressor interference
+            if (!voiceClarity) {
+                // PURE RAW SOUND: Completely flat and zero interference
                 clarityFilterRef.current.gain.setTargetAtTime(0, ctx.currentTime, 0.1)
                 airFilterRef.current.gain.setTargetAtTime(0, ctx.currentTime, 0.1)
                 bassFilterRef.current.gain.setTargetAtTime(0, ctx.currentTime, 0.1)
                 pannerRef.current.pan.setTargetAtTime(0, ctx.currentTime, 0.1)
 
-                // Disable compressor effect but keep Master Gain for safety
+                // Disable compressor effect and open gain for raw fidelity
                 compressorRef.current.threshold.setTargetAtTime(0, ctx.currentTime, 0.1)
                 compressorRef.current.ratio.setTargetAtTime(1, ctx.currentTime, 0.1)
-                masterGainRef.current.gain.setTargetAtTime(1.0, ctx.currentTime, 0.1) // Full power in raw mode
+                masterGainRef.current.gain.setTargetAtTime(1.0, ctx.currentTime, 0.1)
             } else {
-                // ENHANCED SOUND
-                clarityFilterRef.current.gain.setTargetAtTime(voiceClarity ? 3.5 : 0, ctx.currentTime, 0.2)
-                airFilterRef.current.gain.setTargetAtTime(voiceClarity ? 2.5 : 0, ctx.currentTime, 0.2)
-                bassFilterRef.current.gain.setTargetAtTime(bassBoost ? 5.0 : 0, ctx.currentTime, 0.2)
+                // ENHANCED CLARITY SOUND
+                clarityFilterRef.current.gain.setTargetAtTime(3.5, ctx.currentTime, 0.2)
+                airFilterRef.current.gain.setTargetAtTime(2.5, ctx.currentTime, 0.2)
+                bassFilterRef.current.gain.setTargetAtTime(0, ctx.currentTime, 0.2)
+                pannerRef.current.pan.setTargetAtTime(0, ctx.currentTime, 0.2)
 
-                // Spatial effect (subtle width)
-                pannerRef.current.pan.setTargetAtTime(spatial ? 0.05 : 0, ctx.currentTime, 1.0)
-
-                // Restore Compressor to subtle stabilizing settings
+                // Stabilize with subtle compression to prevent clipping/fluctuation
                 compressorRef.current.threshold.setTargetAtTime(-18, ctx.currentTime, 0.2)
                 compressorRef.current.ratio.setTargetAtTime(4, ctx.currentTime, 0.2)
                 masterGainRef.current.gain.setTargetAtTime(0.85, ctx.currentTime, 0.2)
             }
         }
-    }, [voiceClarity, bassBoost, spatial, rawMode])
+    }, [voiceClarity])
 
     useEffect(() => {
         if ('mediaSession' in navigator && track) {
@@ -365,9 +360,6 @@ export default function NowPlayingBar({
                             duration={duration}
                             isLoading={isLoading}
                             voiceClarity={voiceClarity}
-                            bassBoost={bassBoost}
-                            spatial={spatial}
-                            rawMode={rawMode}
                             repeat={repeat}
                             showQueue={showQueue}
                             queue={queue}
@@ -375,9 +367,6 @@ export default function NowPlayingBar({
                             onSeek={handleSeek}
                             onSetIsExpanded={setIsExpanded}
                             onSetVoiceClarity={setVoiceClarity}
-                            onSetBassBoost={setBassBoost}
-                            onSetSpatial={setSpatial}
-                            onSetRawMode={setRawMode}
                             onSetRepeat={setRepeat}
                             onSetShowQueue={setShowQueue}
                             onPlayNext={onPlayNext}
@@ -565,8 +554,8 @@ function MiniPlayer({
 
 function FullScreenPlayer({
     track, isPlaying, progress, currentTime, duration, isLoading,
-    voiceClarity, bassBoost, spatial, rawMode, repeat, showQueue, queue,
-    onTogglePlay, onSeek, onSetIsExpanded, onSetVoiceClarity, onSetBassBoost, onSetSpatial, onSetRawMode, onSetRepeat, onSetShowQueue, onPlayNext, fmt, isMobile
+    voiceClarity, repeat, showQueue, queue,
+    onTogglePlay, onSeek, onSetIsExpanded, onSetVoiceClarity, onSetRepeat, onSetShowQueue, onPlayNext, fmt, isMobile
 }: any) {
     return (
         <div className={`w-full h-full flex flex-col items-center justify-center ${isMobile ? 'gap-6 px-6' : 'gap-8 px-12'} max-w-5xl mx-auto py-10 relative overflow-hidden`}>
@@ -617,63 +606,28 @@ function FullScreenPlayer({
                         </div>
                     </div>
 
-                    <div className={`grid ${isMobile ? 'grid-cols-2' : 'flex flex-row'} items-center justify-center ${isMobile ? 'gap-3' : 'gap-6 md:gap-4'} mx-auto w-full max-w-md`}>
+                    <div className="flex items-center justify-center gap-6 md:gap-8 mx-auto">
                         <ControlBtn
-                            active={voiceClarity && !rawMode}
-                            onClick={() => { onSetVoiceClarity(!voiceClarity); onSetRawMode(false); }}
-                            icon={<MagicWand weight={voiceClarity ? "fill" : "light"} className={isMobile ? "w-5 h-5" : "w-6 h-6"} />}
+                            active={voiceClarity}
+                            onClick={() => onSetVoiceClarity(!voiceClarity)}
+                            icon={<MagicWand weight={voiceClarity ? "fill" : "light"} className={isMobile ? "w-6 h-6" : "w-7 h-7"} />}
                             label="Clarity"
                             isMobile={isMobile}
-                            disabled={rawMode}
                         />
                         <ControlBtn
-                            active={bassBoost && !rawMode}
-                            onClick={() => { onSetBassBoost(!bassBoost); onSetRawMode(false); }}
-                            icon={<Waves weight={bassBoost ? "fill" : "light"} className={isMobile ? "w-5 h-5" : "w-6 h-6"} />}
-                            label="Bass"
+                            active={showQueue}
+                            onClick={() => onSetShowQueue(!showQueue)}
+                            icon={<List weight={showQueue ? "fill" : "light"} className={isMobile ? "w-6 h-6" : "w-7 h-7"} />}
+                            label="Queue"
                             isMobile={isMobile}
-                            disabled={rawMode}
                         />
                         <ControlBtn
-                            active={spatial && !rawMode}
-                            onClick={() => { onSetSpatial(!spatial); onSetRawMode(false); }}
-                            icon={<MusicNotes weight={spatial ? "fill" : "light"} className={isMobile ? "w-5 h-5" : "w-6 h-6"} />}
-                            label="Spatial"
-                            isMobile={isMobile}
-                            disabled={rawMode}
-                        />
-                        <ControlBtn
-                            active={rawMode}
-                            onClick={() => {
-                                onSetRawMode(!rawMode);
-                                if (!rawMode) {
-                                    onSetVoiceClarity(false);
-                                    onSetBassBoost(false);
-                                    onSetSpatial(false);
-                                }
-                            }}
-                            icon={<div className={`font-black ${isMobile ? 'text-xs' : 'text-sm'}`}>RAW</div>}
-                            label="Pure"
+                            active={repeat !== 'off'}
+                            onClick={() => onSetRepeat((r: any) => r === 'off' ? 'all' : r === 'all' ? 'one' : 'off')}
+                            icon={repeat === 'one' ? <RepeatOnce weight="fill" className={isMobile ? "w-6 h-6" : "w-7 h-7"} /> : <Repeat weight={repeat !== 'off' ? "fill" : "light"} className={isMobile ? "w-6 h-6" : "w-7 h-7"} />}
+                            label={repeat === 'one' ? 'Repeat 1' : 'Repeat'}
                             isMobile={isMobile}
                         />
-
-                        {/* Queue and Repeat moved to a second row on mobile or smaller set */}
-                        <div className={`${isMobile ? 'col-span-2 flex justify-center gap-4 mt-2' : 'flex gap-4'}`}>
-                            <ControlBtn
-                                active={showQueue}
-                                onClick={() => onSetShowQueue(!showQueue)}
-                                icon={<List weight={showQueue ? "fill" : "light"} className={isMobile ? "w-5 h-5" : "w-6 h-6"} />}
-                                label="Queue"
-                                isMobile={isMobile}
-                            />
-                            <ControlBtn
-                                active={repeat !== 'off'}
-                                onClick={() => onSetRepeat((r: any) => r === 'off' ? 'all' : r === 'all' ? 'one' : 'off')}
-                                icon={repeat === 'one' ? <RepeatOnce weight="fill" className={isMobile ? "w-5 h-5" : "w-6 h-6"} /> : <Repeat weight={repeat !== 'off' ? "fill" : "light"} className={isMobile ? "w-5 h-5" : "w-6 h-6"} />}
-                                label={repeat === 'one' ? 'Repeat 1' : 'Repeat'}
-                                isMobile={isMobile}
-                            />
-                        </div>
                     </div>
 
                     <div className={`flex items-center justify-center gap-10 md:gap-12 ${isMobile ? 'scale-[1.1]' : 'scale-[1.25]'} mt-6`}>
