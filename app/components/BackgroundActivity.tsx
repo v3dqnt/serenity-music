@@ -11,7 +11,7 @@ export default function BackgroundActivity({ tasks }: BackgroundActivityProps) {
     if (tasks.length === 0) return null
 
     return (
-        <div className="fixed bottom-32 right-8 flex flex-col gap-3 z-[100] items-end pointer-events-none">
+        <div className="fixed top-20 left-4 right-4 md:top-auto md:bottom-32 md:left-auto md:right-8 flex flex-col gap-3 z-[500] items-center md:items-end pointer-events-none">
             <AnimatePresence mode="popLayout">
                 {tasks.map((task) => (
                     <motion.div
