@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 
 /**
- * Serenity Streaming API (Binary + JS Runtime Version)
+ * Serenity Streaming API (Binary + JS Runtime + TV Bypass)
  * ----------------------------------------------------
  */
 export async function GET(request: Request) {
@@ -30,8 +30,7 @@ export async function GET(request: Request) {
     const baseArgs = !hasBinary ? ['-m', 'yt_dlp'] : [];
 
     // Environment setup
-    // 1. Add lib to PATH so yt-dlp finds our bundled 'deno' for signature solving
-    // 2. Set HOME to /tmp for cache writing
+    // Ensure lib is in PATH so yt-dlp finds 'deno' for signature solving
     const env = {
         ...process.env,
         PATH: `${libPath}${path.delimiter}${process.env.PATH}`,
@@ -46,7 +45,7 @@ export async function GET(request: Request) {
         }
     }
 
-    // Vercel fix: Copy cookies to /tmp since yt-dlp tries to update them (ReadOnly FS error)
+    // Copy cookies to writable /tmp
     let activeCookiesPath = null;
     if (hasSourceCookies) {
         try {
@@ -57,6 +56,8 @@ export async function GET(request: Request) {
             console.error(`[stream] Cookie copy failed: ${e.message}`);
         }
     }
+
+    console.log(`[stream] Spawning ${spawnCmd} for ${videoId}`);
 
     const args = [
         ...baseArgs,
@@ -69,9 +70,11 @@ export async function GET(request: Request) {
         '--no-part',
         '--no-cache-dir',
         '--force-ipv4',
-        // 'web' is the most compatible with cookies and deno signature solving
-        '--extractor-args', 'youtube:player-client=web,mweb',
+        // TV and TVEmbed are very robust against PO tokens. 
+        // We include web/android as fallbacks for cookie support.
+        '--extractor-args', 'youtube:player-client=tv,tvembed,android,web',
         '--geo-bypass',
+        '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         `https://www.youtube.com/watch?v=${videoId}`
     ];
 

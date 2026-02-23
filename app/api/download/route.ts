@@ -5,7 +5,7 @@ import os from 'os';
 import fs from 'fs';
 
 /**
- * Serenity Download API (Binary + JS Runtime Version)
+ * Serenity Download API (Binary + JS Runtime + TV Bypass)
  */
 export async function POST(request: Request) {
     try {
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 
         if (!videoId) return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
 
-        const tmpDir = path.join(os.tmpdir(), 'serenity-audio-v2');
+        const tmpDir = path.join(os.tmpdir(), 'serenity-audio-v3');
         if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
         const outputTemplate = path.join(tmpDir, `${videoId}.%(ext)s`);
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
         const binaryPath = path.join(libPath, 'yt-dlp');
         const denoPath = path.join(libPath, 'deno');
         const sourceCookiesPath = path.join(libPath, 'cookies.txt');
-        const targetCookiesPath = '/tmp/cookies_download_v2.txt';
+        const targetCookiesPath = '/tmp/cookies_download_v3.txt';
 
         const hasBinary = fs.existsSync(binaryPath);
         const hasSourceCookies = fs.existsSync(sourceCookiesPath);
@@ -32,6 +32,8 @@ export async function POST(request: Request) {
         const spawnCmd = hasBinary ? binaryPath : (process.platform === 'win32' ? 'python' : 'python3');
         const baseArgs = !hasBinary ? ['-m', 'yt_dlp'] : [];
 
+        // Environment setup
+        // Ensure lib is in PATH so yt-dlp finds 'deno' for signature solving
         const env = {
             ...process.env,
             PATH: `${libPath}${path.delimiter}${process.env.PATH}`,
@@ -46,7 +48,7 @@ export async function POST(request: Request) {
             }
         }
 
-        // Vercel fix: Copy cookies to /tmp since yt-dlp tries to update them (ReadOnly FS error)
+        // Copy cookies to writable /tmp
         let activeCookiesPath = null;
         if (hasSourceCookies) {
             try {
@@ -66,7 +68,7 @@ export async function POST(request: Request) {
             '--no-part',
             '--no-cache-dir',
             '--force-ipv4',
-            '--extractor-args', 'youtube:player-client=web,mweb',
+            '--extractor-args', 'youtube:player-client=tv,tvembed,android,web',
             '--geo-bypass',
             '--output', outputTemplate,
             `https://www.youtube.com/watch?v=${videoId}`
