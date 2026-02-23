@@ -5,7 +5,7 @@ import os from 'os';
 import fs from 'fs';
 
 /**
- * Serenity Download API (Binary Version - Read-Only Fix)
+ * Serenity Download API (Binary + JS Runtime Version)
  */
 export async function POST(request: Request) {
     try {
@@ -14,14 +14,18 @@ export async function POST(request: Request) {
 
         if (!videoId) return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
 
-        const tmpDir = path.join(os.tmpdir(), 'serenity-audio');
+        const tmpDir = path.join(os.tmpdir(), 'serenity-audio-v2');
         if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
         const outputTemplate = path.join(tmpDir, `${videoId}.%(ext)s`);
 
-        const binaryPath = path.join(process.cwd(), 'lib/yt-dlp');
-        const sourceCookiesPath = path.join(process.cwd(), 'lib/cookies.txt');
-        const targetCookiesPath = '/tmp/cookies_download.txt';
+        const cwd = process.cwd();
+        const libPath = path.join(cwd, 'lib');
+        const binaryPath = path.join(libPath, 'yt-dlp');
+        const denoPath = path.join(libPath, 'deno');
+        const sourceCookiesPath = path.join(libPath, 'cookies.txt');
+        const targetCookiesPath = '/tmp/cookies_download_v2.txt';
+
         const hasBinary = fs.existsSync(binaryPath);
         const hasSourceCookies = fs.existsSync(sourceCookiesPath);
 
@@ -30,12 +34,16 @@ export async function POST(request: Request) {
 
         const env = {
             ...process.env,
+            PATH: `${libPath}${path.delimiter}${process.env.PATH}`,
             HOME: '/tmp',
             PYTHONUNBUFFERED: '1'
         };
 
         if (hasBinary && process.env.VERCEL === '1') {
             try { fs.chmodSync(binaryPath, '755'); } catch (e) { }
+            if (fs.existsSync(denoPath)) {
+                try { fs.chmodSync(denoPath, '755'); } catch (e) { }
+            }
         }
 
         // Vercel fix: Copy cookies to /tmp since yt-dlp tries to update them (ReadOnly FS error)
@@ -58,7 +66,7 @@ export async function POST(request: Request) {
             '--no-part',
             '--no-cache-dir',
             '--force-ipv4',
-            '--extractor-args', 'youtube:player-client=web,android,mweb',
+            '--extractor-args', 'youtube:player-client=web,mweb',
             '--geo-bypass',
             '--output', outputTemplate,
             `https://www.youtube.com/watch?v=${videoId}`

@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 
 /**
- * Serenity Streaming API (Binary Version - Read-Only Fix)
+ * Serenity Streaming API (Binary + JS Runtime Version)
  * ----------------------------------------------------
  */
 export async function GET(request: Request) {
@@ -15,9 +15,13 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
     }
 
-    const binaryPath = path.join(process.cwd(), 'lib/yt-dlp');
-    const sourceCookiesPath = path.join(process.cwd(), 'lib/cookies.txt');
-    const targetCookiesPath = '/tmp/cookies.txt';
+    const cwd = process.cwd();
+    const libPath = path.join(cwd, 'lib');
+    const binaryPath = path.join(libPath, 'yt-dlp');
+    const denoPath = path.join(libPath, 'deno');
+    const sourceCookiesPath = path.join(libPath, 'cookies.txt');
+    const targetCookiesPath = '/tmp/cookies_stream.txt';
+
     const hasBinary = fs.existsSync(binaryPath);
     const hasSourceCookies = fs.existsSync(sourceCookiesPath);
 
@@ -25,15 +29,21 @@ export async function GET(request: Request) {
     const spawnCmd = hasBinary ? binaryPath : (process.platform === 'win32' ? 'python' : 'python3');
     const baseArgs = !hasBinary ? ['-m', 'yt_dlp'] : [];
 
-    // Environment setup to prevent yt-dlp from trying to write to read-only home
+    // Environment setup
+    // 1. Add lib to PATH so yt-dlp finds our bundled 'deno' for signature solving
+    // 2. Set HOME to /tmp for cache writing
     const env = {
         ...process.env,
+        PATH: `${libPath}${path.delimiter}${process.env.PATH}`,
         HOME: '/tmp',
         PYTHONUNBUFFERED: '1'
     };
 
     if (hasBinary && process.env.VERCEL === '1') {
         try { fs.chmodSync(binaryPath, '755'); } catch (e) { }
+        if (fs.existsSync(denoPath)) {
+            try { fs.chmodSync(denoPath, '755'); } catch (e) { }
+        }
     }
 
     // Vercel fix: Copy cookies to /tmp since yt-dlp tries to update them (ReadOnly FS error)
@@ -43,13 +53,10 @@ export async function GET(request: Request) {
             const cookieContent = fs.readFileSync(sourceCookiesPath, 'utf8');
             fs.writeFileSync(targetCookiesPath, cookieContent);
             activeCookiesPath = targetCookiesPath;
-            console.log(`[stream] Cookies copied to ${targetCookiesPath}`);
         } catch (e: any) {
             console.error(`[stream] Cookie copy failed: ${e.message}`);
         }
     }
-
-    console.log(`[stream] Spawning ${spawnCmd} for ${videoId}`);
 
     const args = [
         ...baseArgs,
@@ -62,8 +69,8 @@ export async function GET(request: Request) {
         '--no-part',
         '--no-cache-dir',
         '--force-ipv4',
-        // 'ios' client skips cookies, so we use web/android
-        '--extractor-args', 'youtube:player-client=web,android,mweb',
+        // 'web' is the most compatible with cookies and deno signature solving
+        '--extractor-args', 'youtube:player-client=web,mweb',
         '--geo-bypass',
         `https://www.youtube.com/watch?v=${videoId}`
     ];

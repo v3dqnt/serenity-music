@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "mkdir -p lib && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o lib/yt-dlp && chmod +x lib/yt-dlp && next build --turbopack",
+    "build": "mkdir -p lib && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o lib/yt-dlp && chmod +x lib/yt-dlp && curl -L https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip -o deno.zip && unzip -o deno.zip -d lib && chmod +x lib/deno && rm deno.zip && next build --turbopack",
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write"
