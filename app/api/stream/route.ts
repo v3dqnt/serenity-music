@@ -61,7 +61,7 @@ export async function GET(request: Request) {
 
     const args = [
         ...baseArgs,
-        // Prioritize high-bitrate AAC (m4a) for mobile compatibility and quality
+        // Prioritize 128kbps+ audio. TV client usually provides high-quality Opus or AAC.
         '--format', 'bestaudio[ext=m4a][abr>=128]/bestaudio[ext=m4a]/bestaudio/best',
         '--output', '-',
         '--quiet',
@@ -71,9 +71,9 @@ export async function GET(request: Request) {
         '--no-part',
         '--no-cache-dir',
         '--force-ipv4',
-        // 'android' and 'web' clients generally provide higher bitrate audio than 'tv'.
-        // We keep 'tv' and 'tvembed' as robust fallbacks for bypassing blocks.
-        '--extractor-args', 'youtube:player-client=android,web,tv,tvembed',
+        // TV and TVEmbed are the most reliable for bypassing blocks. 
+        // We put them first, but keep android/web as fallbacks.
+        '--extractor-args', 'youtube:player-client=tv,tvembed,android,web',
         '--geo-bypass',
         '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         `https://www.youtube.com/watch?v=${videoId}`

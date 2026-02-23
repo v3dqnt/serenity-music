@@ -68,7 +68,7 @@ export async function POST(request: Request) {
             '--no-part',
             '--no-cache-dir',
             '--force-ipv4',
-            '--extractor-args', 'youtube:player-client=android,web,tv,tvembed',
+            '--extractor-args', 'youtube:player-client=tv,tvembed,android,web',
             '--geo-bypass',
             '--output', outputTemplate,
             `https://www.youtube.com/watch?v=${videoId}`
