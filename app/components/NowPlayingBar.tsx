@@ -202,8 +202,8 @@ export default function NowPlayingBar({
 
             navigator.mediaSession.setActionHandler('play', togglePlay);
             navigator.mediaSession.setActionHandler('pause', togglePlay);
-            navigator.mediaSession.setActionHandler('previoustrack', onAlmostDone);
-            navigator.mediaSession.setActionHandler('nexttrack', onPlayNext);
+            navigator.mediaSession.setActionHandler('previoustrack', onAlmostDone || null);
+            navigator.mediaSession.setActionHandler('nexttrack', onPlayNext || null);
         }
     }, [track.id])
 
