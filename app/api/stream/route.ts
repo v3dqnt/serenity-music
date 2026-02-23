@@ -61,7 +61,8 @@ export async function GET(request: Request) {
 
     const args = [
         ...baseArgs,
-        '--format', 'ba[ext=m4a]/ba',
+        // Prioritize high-bitrate AAC (m4a) for mobile compatibility and quality
+        '--format', 'bestaudio[ext=m4a][abr>=128]/bestaudio[ext=m4a]/bestaudio/best',
         '--output', '-',
         '--quiet',
         '--no-playlist',
@@ -70,9 +71,9 @@ export async function GET(request: Request) {
         '--no-part',
         '--no-cache-dir',
         '--force-ipv4',
-        // TV and TVEmbed are very robust against PO tokens. 
-        // We include web/android as fallbacks for cookie support.
-        '--extractor-args', 'youtube:player-client=tv,tvembed,android,web',
+        // 'android' and 'web' clients generally provide higher bitrate audio than 'tv'.
+        // We keep 'tv' and 'tvembed' as robust fallbacks for bypassing blocks.
+        '--extractor-args', 'youtube:player-client=android,web,tv,tvembed',
         '--geo-bypass',
         '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         `https://www.youtube.com/watch?v=${videoId}`

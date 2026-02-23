@@ -67,6 +67,7 @@ export default function NowPlayingBar({
     const bassFilterRef = useRef<BiquadFilterNode | null>(null)
     const clarityFilterRef = useRef<BiquadFilterNode | null>(null)
     const airFilterRef = useRef<BiquadFilterNode | null>(null)
+    const compressorRef = useRef<DynamicsCompressorNode | null>(null)
 
     useEffect(() => {
         const audioEl = audioRef.current as AudioEnhancedElement | null
@@ -88,12 +89,14 @@ export default function NowPlayingBar({
         const source = audioEl._audioSource
         sourceRef.current = source
 
+        // 1. Bass Filter
         const bass = ctx.createBiquadFilter()
         bass.type = 'lowshelf'
         bass.frequency.value = 80
         bass.gain.value = 0
         bassFilterRef.current = bass
 
+        // 2. Clarity (High-Mid)
         const clarity = ctx.createBiquadFilter()
         clarity.type = 'peaking'
         clarity.frequency.value = 3000
@@ -101,23 +104,35 @@ export default function NowPlayingBar({
         clarity.gain.value = 0
         clarityFilterRef.current = clarity
 
+        // 3. Air (High End)
         const air = ctx.createBiquadFilter()
         air.type = 'highshelf'
         air.frequency.value = 12000
         air.gain.value = 0
         airFilterRef.current = air
 
+        // 4. Dynamics Compressor (CRITICAL: Fixes volume fluctuation and prevents clipping)
+        const compressor = ctx.createDynamicsCompressor()
+        compressor.threshold.setValueAtTime(-24, ctx.currentTime)
+        compressor.knee.setValueAtTime(30, ctx.currentTime)
+        compressor.ratio.setValueAtTime(12, ctx.currentTime)
+        compressor.attack.setValueAtTime(0.003, ctx.currentTime)
+        compressor.release.setValueAtTime(0.25, ctx.currentTime)
+        compressorRef.current = compressor
+
         try { source.disconnect() } catch (_) { }
         source.connect(bass)
         bass.connect(clarity)
         clarity.connect(air)
-        air.connect(ctx.destination)
+        air.connect(compressor)
+        compressor.connect(ctx.destination)
 
         return () => {
             try {
                 bass.disconnect()
                 clarity.disconnect()
                 air.disconnect()
+                compressor.disconnect()
                 source.connect(ctx.destination)
             } catch (_) { }
         }
@@ -127,9 +142,10 @@ export default function NowPlayingBar({
         const audioEl = audioRef.current as AudioEnhancedElement | null
         const ctx = audioEl?._audioCtx
         if (clarityFilterRef.current && airFilterRef.current && bassFilterRef.current && ctx) {
-            clarityFilterRef.current.gain.setTargetAtTime(voiceClarity ? 4.5 : 0, ctx.currentTime, 0.15)
-            airFilterRef.current.gain.setTargetAtTime(voiceClarity ? 3.5 : 0, ctx.currentTime, 0.15)
-            bassFilterRef.current.gain.setTargetAtTime(bassBoost ? 6.5 : 0, ctx.currentTime, 0.15)
+            // Use softer gains to prevent forced normalization by OS/Browser
+            clarityFilterRef.current.gain.setTargetAtTime(voiceClarity ? 3.5 : 0, ctx.currentTime, 0.2)
+            airFilterRef.current.gain.setTargetAtTime(voiceClarity ? 2.5 : 0, ctx.currentTime, 0.2)
+            bassFilterRef.current.gain.setTargetAtTime(bassBoost ? 5.0 : 0, ctx.currentTime, 0.2)
         }
     }, [voiceClarity, bassBoost])
 

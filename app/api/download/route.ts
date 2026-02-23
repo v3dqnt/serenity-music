@@ -62,13 +62,13 @@ export async function POST(request: Request) {
 
         const args = [
             ...baseArgs,
-            '-f', 'ba[ext=m4a]/ba',
+            '-f', 'bestaudio[ext=m4a][abr>=128]/bestaudio[ext=m4a]/bestaudio/best',
             '--no-playlist',
             '--no-check-certificates',
             '--no-part',
             '--no-cache-dir',
             '--force-ipv4',
-            '--extractor-args', 'youtube:player-client=tv,tvembed,android,web',
+            '--extractor-args', 'youtube:player-client=android,web,tv,tvembed',
             '--geo-bypass',
             '--output', outputTemplate,
             `https://www.youtube.com/watch?v=${videoId}`
