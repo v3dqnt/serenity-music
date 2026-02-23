@@ -74,9 +74,13 @@ export default function NowPlayingBar({
         const audioEl = audioRef.current as AudioEnhancedElement | null
         if (!audioEl) return
 
-        if (!audioEl._audioCtx || audioEl._audioCtx.state === 'closed') {
+        if (!audioEl._audioCtx) {
             const AC = (window as any).AudioContext || (window as any).webkitAudioContext
-            audioEl._audioCtx = new AC()
+            // 'playback' hint tells the OS to prioritize audio quality/fidelity over low latency
+            audioEl._audioCtx = new AC({
+                latencyHint: 'playback',
+                sampleRate: 44100
+            })
         }
         const ctx = audioEl._audioCtx!
 
@@ -159,18 +163,19 @@ export default function NowPlayingBar({
         const ctx = audioEl?._audioCtx
         if (clarityFilterRef.current && airFilterRef.current && bassFilterRef.current && compressorRef.current && pannerRef.current && masterGainRef.current && ctx) {
             if (!voiceClarity) {
-                // PURE RAW SOUND: Completely flat and zero interference
-                clarityFilterRef.current.gain.setTargetAtTime(0, ctx.currentTime, 0.1)
-                airFilterRef.current.gain.setTargetAtTime(0, ctx.currentTime, 0.1)
-                bassFilterRef.current.gain.setTargetAtTime(0, ctx.currentTime, 0.1)
-                pannerRef.current.pan.setTargetAtTime(0, ctx.currentTime, 0.1)
-
-                // Disable compressor effect and open gain for raw fidelity
-                compressorRef.current.threshold.setTargetAtTime(0, ctx.currentTime, 0.1)
-                compressorRef.current.ratio.setTargetAtTime(1, ctx.currentTime, 0.1)
-                masterGainRef.current.gain.setTargetAtTime(1.0, ctx.currentTime, 0.1)
+                // TRUE BYPASS: Direct connection for 100% original fidelity
+                // This prevents the OS from applying "voice/call" processing
+                try {
+                    sourceRef.current?.disconnect();
+                    sourceRef.current?.connect(ctx.destination);
+                } catch (e) { }
             } else {
                 // ENHANCED CLARITY SOUND
+                try {
+                    sourceRef.current?.disconnect();
+                    sourceRef.current?.connect(bassFilterRef.current);
+                } catch (e) { }
+
                 clarityFilterRef.current.gain.setTargetAtTime(3.5, ctx.currentTime, 0.2)
                 airFilterRef.current.gain.setTargetAtTime(2.5, ctx.currentTime, 0.2)
                 bassFilterRef.current.gain.setTargetAtTime(0, ctx.currentTime, 0.2)
@@ -338,12 +343,14 @@ export default function NowPlayingBar({
             >
                 <audio
                     ref={audioRef}
-                    src={src || undefined}
+                    src={src}
                     onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={handleLoadedMetadata}
                     onEnded={() => onPlayNext?.()}
-                    className="hidden"
                     crossOrigin="anonymous"
+                    autoPlay
+                    playsInline
+                    preload="auto"
                 />
 
                 <div

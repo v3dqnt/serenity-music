@@ -61,8 +61,8 @@ export async function GET(request: Request) {
 
     const args = [
         ...baseArgs,
-        // Prioritize 128kbps+ audio. TV client usually provides high-quality Opus or AAC.
-        '--format', 'bestaudio[ext=m4a][abr>=128]/bestaudio[ext=m4a]/bestaudio/best',
+        // Prioritize Hi-Fi audio (160kbps+). Opus/AAC from TV clients is usually premium quality.
+        '--format', 'bestaudio[abr>=160]/bestaudio[ext=m4a][abr>=128]/bestaudio/best',
         '--output', '-',
         '--quiet',
         '--no-playlist',

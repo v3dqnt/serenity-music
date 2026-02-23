@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 
         const args = [
             ...baseArgs,
-            '-f', 'bestaudio[ext=m4a][abr>=128]/bestaudio[ext=m4a]/bestaudio/best',
+            '-f', 'bestaudio[abr>=160]/bestaudio[ext=m4a][abr>=128]/bestaudio/best',
             '--no-playlist',
             '--no-check-certificates',
             '--no-part',
