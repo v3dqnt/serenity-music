@@ -11,6 +11,7 @@ import ChartsView from "../components/ChartsView"
 import { createClient } from '../../lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { getCachedBlobUrl, cacheAudioBlob, getLibrary, saveToLibrary } from '../lib/audioCache'
+import BackgroundActivity from "../components/BackgroundActivity"
 
 export default function Home() {
     const [selectedTrack, setSelectedTrack] = useState<any | null>(null)
@@ -23,6 +24,7 @@ export default function Home() {
     const [view, setView] = useState<'home' | 'library' | 'playlists' | 'charts' | 'curated' | 'social'>('home')
     const [user, setUser] = useState<any>(null)
     const [queue, setQueue] = useState<any[]>([])
+    const [activeTasks, setActiveTasks] = useState<any[]>([])
     const supabase = createClient()
     const router = useRouter()
 
@@ -138,6 +140,11 @@ export default function Home() {
         // 1. Resolve track ID if it's missing (Billboard/Shazam charts)
         if (track.needsResolution || !track.id) {
             setLoadingTrackId(track.id || 'resolving')
+            const taskId = Math.random().toString(36).substring(7)
+            const resolveTask = { id: taskId, track, type: 'resolving', status: 'loading' }
+
+            setActiveTasks(prev => [...prev, resolveTask])
+
             try {
                 console.log(`[Playback] Resolving external track: ${track.title} by ${track.channelTitle}`)
                 const query = `${track.title} ${track.channelTitle} official`
@@ -157,17 +164,22 @@ export default function Home() {
                         throw new Error('No match found on YouTube')
                     }
                 }
+                // Update task to done before removing
+                setActiveTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'done' } : t))
+                setTimeout(() => setActiveTasks(prev => prev.filter(t => t.id !== taskId)), 1500)
             } catch (e) {
                 console.error('Failed to resolve track:', e)
+                setActiveTasks(prev => prev.filter(t => t.id !== taskId))
                 alert(`Serenity couldn't find a high-quality match for "${track.title}" on YouTube.`)
                 setLoadingTrackId(null)
                 return
             }
         }
 
-        // Only open the player once we have a valid YouTube ID
+        // Switch UI to the active track
         setSelectedTrack(activeTrack)
-        setLocalUrl(null)
+        // Note: We used to call setLocalUrl(null) here, but we removed it 
+        // to keep current playback alive until the stream buffers.
         setLoadingTrackId(activeTrack.id)
 
         // Sync Session Memory (Local)
@@ -194,6 +206,9 @@ export default function Home() {
             setLoadingTrackId(null)
 
             // STEP C: In the background, trigger the full download for permanent caching
+            const downloadTaskId = Math.random().toString(36).substring(7)
+            setActiveTasks(prev => [...prev, { id: downloadTaskId, track: activeTrack, type: 'caching', status: 'loading' }])
+
             fetch('/api/download', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -209,8 +224,17 @@ export default function Home() {
                     const blob = await response.blob()
                     await cacheAudioBlob(activeTrack.id, blob, mimeType)
                     console.log(`[Playback] Track successfully cached in background: ${activeTrack.id}`)
+
+                    // Mark as done
+                    setActiveTasks(prev => prev.map(t => t.id === downloadTaskId ? { ...t, status: 'done' } : t))
+                    setTimeout(() => setActiveTasks(prev => prev.filter(t => t.id !== downloadTaskId)), 2000)
+                } else {
+                    setActiveTasks(prev => prev.filter(t => t.id !== downloadTaskId))
                 }
-            }).catch(e => console.warn('[Playback] Background caching failed:', e))
+            }).catch(e => {
+                console.warn('[Playback] Background caching failed:', e)
+                setActiveTasks(prev => prev.filter(t => t.id !== downloadTaskId))
+            })
 
             // STEP D: Pre-fetch the next track in the queue
             if (queue.length > 0) {
@@ -240,6 +264,11 @@ export default function Home() {
         const cachedUrl = await getCachedBlobUrl(track.id)
         if (cachedUrl) return
 
+        if (activeTasks.some(t => t.track.id === track.id)) return
+
+        const taskId = Math.random().toString(36).substring(7)
+        setActiveTasks(prev => [...prev, { id: taskId, track, type: 'caching', status: 'loading' }])
+
         try {
             const response = await fetch('/api/download', {
                 method: 'POST',
@@ -265,9 +294,14 @@ export default function Home() {
                     enhanced: true,
                 })
                 fetchLibrary()
+                setActiveTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'done' } : t))
+                setTimeout(() => setActiveTasks(prev => prev.filter(t => t.id !== taskId)), 2000)
+            } else {
+                setActiveTasks(prev => prev.filter(t => t.id !== taskId))
             }
         } catch (error) {
             console.error('[AudioCache] Pre-cache failed:', error)
+            setActiveTasks(prev => prev.filter(t => t.id !== taskId))
         }
     }
 
@@ -537,6 +571,8 @@ export default function Home() {
                     />
                 )}
             </AnimatePresence>
+
+            <BackgroundActivity tasks={activeTasks} />
         </main>
     )
 }
