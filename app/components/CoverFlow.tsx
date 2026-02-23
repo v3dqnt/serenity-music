@@ -101,7 +101,8 @@ export default function CoverFlow({ tracks, onSelect, activeTrackId, loadingTrac
                                     <img
                                         src={track.thumbnail}
                                         alt={track.title}
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                        loading="lazy"
                                     />
                                 ) : (
                                     <div className="w-full h-full bg-[var(--color-obsidian)] flex items-center justify-center p-4 text-center">

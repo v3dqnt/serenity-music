@@ -223,6 +223,41 @@ h3,
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* ── Mobile Optimization ──────────────────────────── */
+@media (max-width: 768px) {
+
+  .glass,
+  .glass-dropdown,
+  .glass-panel,
+  .liquid-glass,
+  .glass-card {
+    backdrop-filter: blur(8px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  }
+
+  .liquid-orb {
+    animation: none !important;
+    opacity: 0.25 !important;
+    filter: blur(60px) !important;
+  }
+
+  /* Reduce shadow complexity on mobile */
+  .shadow-2xl,
+  .shadow-3xl {
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  }
+}
+
+/* ── Hardware Acceleration Hints ── */
+.glass,
+.glass-panel,
+.liquid-glass,
+.glass-card,
+.motion-div,
+.liquid-orb {
+  will-change: transform, opacity;
+}
+
 /* ── Range slider ──────────────────────────────────── */
 input[type='range'] {
   -webkit-appearance: none;

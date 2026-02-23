@@ -94,7 +94,7 @@ export default function SearchBar({
                 }}
             >
                 {track.thumbnail
-                    ? <img src={track.thumbnail} alt="" className="w-full h-full object-cover transition-all duration-300" />
+                    ? <img src={track.thumbnail} alt="" className="w-full h-full object-cover transition-all duration-300" loading="lazy" />
                     : <div className="w-full h-full flex items-center justify-center">
                         <MusicNote weight="bold" className="w-6 h-6 text-white/20" />
                     </div>

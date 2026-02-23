@@ -147,13 +147,13 @@ export default function NowPlayingBar({
         if (!containerRef.current || !barRef.current || !overlayRef.current) return
 
         if (isExpanded) {
-            gsap.to(overlayRef.current, { opacity: 1, backdropFilter: 'blur(32px) saturate(160%)', duration: 0.8, ease: 'power3.out' })
+            gsap.to(overlayRef.current, { opacity: 1, backdropFilter: isMobile ? 'blur(12px) saturate(120%)' : 'blur(32px) saturate(160%)', duration: 0.8, ease: 'power3.out' })
             gsap.to(bgRef.current, { opacity: 1, duration: 1.5, delay: 0.1, ease: 'power3.out' })
 
             gsap.to(containerRef.current, {
                 top: 0, left: 0, xPercent: 0, x: 0,
                 width: '100%', maxWidth: '100%', height: '100vh',
-                borderRadius: 0, duration: 0.85, ease: 'expo.out'
+                borderRadius: 0, duration: 0.7, ease: 'expo.out'
             })
 
             gsap.to(barRef.current, {
@@ -192,13 +192,13 @@ export default function NowPlayingBar({
                 height: '100%',
                 padding: isMobile ? '8px 16px' : '12px 36px',
                 borderRadius: isMobile ? '24px' : '32px',
-                background: 'rgba(20, 20, 25, 0.45)',
-                backdropFilter: 'blur(50px) saturate(220%)',
-                WebkitBackdropFilter: 'blur(50px) saturate(220%)',
+                background: isMobile ? 'rgba(20, 20, 25, 0.85)' : 'rgba(20, 20, 25, 0.45)',
+                backdropFilter: isMobile ? 'blur(12px) saturate(120%)' : 'blur(50px) saturate(220%)',
+                WebkitBackdropFilter: isMobile ? 'blur(12px) saturate(120%)' : 'blur(50px) saturate(220%)',
                 border: '1px solid rgba(255, 255, 255, 0.14)',
                 borderTop: '1px solid rgba(255, 255, 255, 0.28)',
-                boxShadow: '0 32px 64px -16px rgba(0, 0, 0, 0.7)',
-                duration: 0.75,
+                boxShadow: isMobile ? '0 10px 30px rgba(0,0,0,0.5)' : '0 32px 64px -16px rgba(0, 0, 0, 0.7)',
+                duration: 0.65,
                 ease: 'expo.inOut'
             })
         }
