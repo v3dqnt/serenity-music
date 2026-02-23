@@ -8,16 +8,16 @@ interface PlaylistsViewProps {
     libraryTracks: any[]
     onPlay: (track: any) => void
     currentTrackId?: string | null
+    loadingTrackId?: string | null
     playlists: any[]
     onRefresh: () => void
 }
 
-export default function PlaylistsView({ libraryTracks, onPlay, currentTrackId, playlists, onRefresh }: PlaylistsViewProps) {
+export default function PlaylistsView({ libraryTracks, onPlay, currentTrackId, loadingTrackId, playlists, onRefresh }: PlaylistsViewProps) {
     const [selectedPlaylist, setSelectedPlaylist] = useState<any | null>(null)
     const [showCreate, setShowCreate] = useState(false)
     const [newName, setNewName] = useState('')
     const [showAddTracks, setShowAddTracks] = useState(false)
-    const [loadingTrackId, setLoadingTrackId] = useState<string | null>(null)
 
     // Sync selected playlist details when playlists prop updates
     useEffect(() => {
@@ -83,12 +83,7 @@ export default function PlaylistsView({ libraryTracks, onPlay, currentTrackId, p
             onPlay({ ...track, url: localMatch.url, isLocal: true })
         } else {
             // Not local — trigger download via parent handlePlay
-            setLoadingTrackId(track.id)
-            try {
-                await onPlay(track)
-            } finally {
-                setLoadingTrackId(null)
-            }
+            await onPlay(track)
         }
     }
 

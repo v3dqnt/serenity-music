@@ -3,7 +3,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-export default function SocialView({ user }: { user: any }) {
+interface SocialViewProps {
+    user: any
+    onPlay: (track: any) => void
+    currentTrackId?: string | null
+    loadingTrackId?: string | null
+}
+
+export default function SocialView({ user, onPlay, currentTrackId, loadingTrackId }: SocialViewProps) {
     const [friends, setFriends] = useState<any[]>([])
     const [activity, setActivity] = useState<any[]>([])
     const [jamInvites, setJamInvites] = useState<any[]>([])
@@ -274,29 +281,58 @@ export default function SocialView({ user }: { user: any }) {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {activity.map((item: any) => (
-                            <motion.div key={item.friend_id + (item.track_id || '')} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-panel rounded-[32px] overflow-hidden border border-white/10 hover:border-white/20 transition-all group relative aspect-[1.8/1] flex flex-col justify-end p-6">
-                                {item.track_thumbnail && <div className="absolute inset-0 pointer-events-none"><img src={item.track_thumbnail} alt="" className="w-full h-full object-cover scale-110 blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-700" /><div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" /></div>}
-                                <div className="relative z-10 space-y-3">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-full bg-white text-black flex items-center justify-center text-[8px] font-black">{item.friend_name?.[0]}</div>
-                                        <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">{item.friend_name} was vibing to</span>
-                                        {item.played_at && (
-                                            <span className="ml-auto text-[8px] font-black text-white/20 uppercase tracking-widest">
-                                                {timeAgo(item.played_at)}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-end gap-4">
-                                        {item.track_thumbnail && <img src={item.track_thumbnail} className="w-16 h-16 rounded-2xl shadow-2xl object-cover border border-white/10 group-hover:scale-105 transition-transform duration-500" alt="" />}
-                                        <div className="flex-1 min-w-0 pb-1">
-                                            <h4 className="font-black text-white text-lg truncate tracking-tight">{item.track_title}</h4>
-                                            <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mt-1 truncate">{item.track_artist}</p>
+                        {activity.map((item: any) => {
+                            const trackObj = {
+                                id: item.track_id,
+                                title: item.track_title,
+                                channelTitle: item.track_artist,
+                                thumbnail: item.track_thumbnail
+                            }
+                            const isLoadingThis = loadingTrackId === item.track_id && item.track_id !== null
+                            const isSelected = currentTrackId === item.track_id && item.track_id !== null
+
+                            return (
+                                <motion.div
+                                    key={item.friend_id + (item.track_id || '')}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className={`glass-panel rounded-[32px] overflow-hidden border transition-all group relative aspect-[1.8/1] flex flex-col justify-end p-6 cursor-pointer ${isSelected ? 'border-white/40 ring-2 ring-white/10' : 'border-white/10 hover:border-white/20'}`}
+                                    onClick={() => onPlay(trackObj)}
+                                >
+                                    {item.track_thumbnail && <div className="absolute inset-0 pointer-events-none"><img src={item.track_thumbnail} alt="" className="w-full h-full object-cover scale-110 blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-700" /><div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" /></div>}
+
+                                    {/* Play Overlay */}
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                                        <div className="w-14 h-14 rounded-full bg-white text-black flex items-center justify-center shadow-2xl shadow-white/10 scale-90 group-hover:scale-100 transition-transform duration-500">
+                                            {isLoadingThis ? (
+                                                <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                                            ) : (
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" className="ml-1"><path d="M8 5v14l11-7z" /></svg>
+                                            )}
                                         </div>
                                     </div>
-                                </div>
-                            </motion.div>
-                        ))}
+
+                                    <div className="relative z-10 space-y-3">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded-full bg-white text-black flex items-center justify-center text-[8px] font-black">{item.friend_name?.[0]}</div>
+                                            <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">{item.friend_name} was vibing to</span>
+                                            {item.played_at && (
+                                                <span className="ml-auto text-[8px] font-black text-white/20 uppercase tracking-widest">
+                                                    {timeAgo(item.played_at)}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-end gap-4">
+                                            {item.track_thumbnail && <img src={item.track_thumbnail} className="w-16 h-16 rounded-2xl shadow-2xl object-cover border border-white/10 group-hover:scale-105 transition-transform duration-500" alt="" />}
+                                            <div className="flex-1 min-w-0 pb-1">
+                                                <h4 className="font-black text-white text-lg truncate tracking-tight">{item.track_title}</h4>
+                                                <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mt-1 truncate">{item.track_artist}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )
+                        })}
                     </div>
                 )}
             </div>

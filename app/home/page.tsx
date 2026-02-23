@@ -349,7 +349,11 @@ export default function Home() {
                                             )}
                                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                                                 <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black shadow-lg shadow-white/10">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                                                    {loadingTrackId === track.id ? (
+                                                        <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                                                    ) : (
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="absolute bottom-0 left-0 w-full p-3 md:p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
@@ -379,7 +383,7 @@ export default function Home() {
                                     </div>
                                 )}
                                 {libraryTracks.length > 0 ? (
-                                    <CoverFlow tracks={libraryTracks.slice(0, 7)} onSelect={handlePlay} activeTrackId={selectedTrack?.id} libraryTracks={libraryTracks} />
+                                    <CoverFlow tracks={libraryTracks.slice(0, 7)} onSelect={handlePlay} activeTrackId={selectedTrack?.id} loadingTrackId={loadingTrackId} libraryTracks={libraryTracks} />
                                 ) : (
                                     <div className="text-center py-20 text-white/30">
                                         <p className="font-semibold">No songs played yet.</p>
@@ -408,6 +412,7 @@ export default function Home() {
                                 <ChartsView
                                     onPlay={handlePlay}
                                     currentTrackId={selectedTrack?.id}
+                                    loadingTrackId={loadingTrackId}
                                 />
                             </motion.div>
                         </AnimatePresence>
@@ -444,7 +449,12 @@ export default function Home() {
 
                     {/* Social View */}
                     {view === 'social' && (
-                        <SocialView user={user} />
+                        <SocialView
+                            user={user}
+                            onPlay={handlePlay}
+                            currentTrackId={selectedTrack?.id}
+                            loadingTrackId={loadingTrackId}
+                        />
                     )}
 
                     {/* Playlists View */}
@@ -461,6 +471,7 @@ export default function Home() {
                                     libraryTracks={libraryTracks}
                                     onPlay={handlePlay}
                                     currentTrackId={selectedTrack?.id}
+                                    loadingTrackId={loadingTrackId}
                                     playlists={playlists}
                                     onRefresh={fetchPlaylists}
                                 />

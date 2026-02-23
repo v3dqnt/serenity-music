@@ -21,6 +21,7 @@ interface Region {
 interface ChartsViewProps {
     onPlay: (track: any) => void
     currentTrackId?: string | null
+    loadingTrackId?: string | null
 }
 
 const REGIONS: Region[] = [
@@ -41,7 +42,7 @@ const SOURCES = [
     { id: 'spotify', name: 'Spotify', icon: '🎧' },
 ];
 
-export default function ChartsView({ onPlay, currentTrackId }: ChartsViewProps) {
+export default function ChartsView({ onPlay, currentTrackId, loadingTrackId }: ChartsViewProps) {
     const [tracks, setTracks] = useState<Track[]>([])
     const [loading, setLoading] = useState(true)
     const [region, setRegion] = useState('US')
@@ -168,7 +169,11 @@ export default function ChartsView({ onPlay, currentTrackId }: ChartsViewProps) 
                                     </div>
 
                                     <div className="w-10 h-10 rounded-full flex items-center justify-center text-white/10 group-hover:text-white group-hover:bg-white/10 transition-all">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                                        {(loadingTrackId === track.id || (track.needsResolution && loadingTrackId === 'resolving')) ? (
+                                            <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                                        )}
                                     </div>
                                 </motion.div>
                             )

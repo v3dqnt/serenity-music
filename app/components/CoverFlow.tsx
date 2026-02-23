@@ -7,10 +7,11 @@ interface CoverFlowProps {
     tracks: any[]
     onSelect: (track: any) => void
     activeTrackId?: string | null
+    loadingTrackId?: string | null
     libraryTracks?: any[]
 }
 
-export default function CoverFlow({ tracks, onSelect, activeTrackId, libraryTracks = [] }: CoverFlowProps) {
+export default function CoverFlow({ tracks, onSelect, activeTrackId, loadingTrackId, libraryTracks = [] }: CoverFlowProps) {
     const [currentIndex, setCurrentIndex] = useState(Math.floor(tracks.length / 2))
     const [isMobile, setIsMobile] = useState(false)
 
@@ -114,9 +115,15 @@ export default function CoverFlow({ tracks, onSelect, activeTrackId, libraryTrac
                                 {/* Play overlay on center card */}
                                 {isCenter && (
                                     <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-all duration-300 flex items-center justify-center group">
-                                        <div className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} rounded-full bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.3)] backdrop-blur-md`}>
-                                            <svg xmlns="http://www.w3.org/2000/svg" width={isMobile ? "20" : "26"} height={isMobile ? "20" : "26"} viewBox="0 0 24 24" fill="currentColor" className="text-black ml-1"><path d="M8 5v14l11-7z" /></svg>
-                                        </div>
+                                        {loadingTrackId === track.id ? (
+                                            <div className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} rounded-full bg-white/20 backdrop-blur-xl border border-white/30 flex items-center justify-center shadow-2xl`}>
+                                                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                            </div>
+                                        ) : (
+                                            <div className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} rounded-full bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.3)] backdrop-blur-md`}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width={isMobile ? "20" : "26"} height={isMobile ? "20" : "26"} viewBox="0 0 24 24" fill="currentColor" className="text-black ml-1"><path d="M8 5v14l11-7z" /></svg>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
