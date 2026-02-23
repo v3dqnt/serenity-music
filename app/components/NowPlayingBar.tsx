@@ -71,6 +71,7 @@ export default function NowPlayingBar({
     const airFilterRef = useRef<BiquadFilterNode | null>(null)
     const compressorRef = useRef<DynamicsCompressorNode | null>(null)
     const pannerRef = useRef<StereoPannerNode | null>(null)
+    const masterGainRef = useRef<GainNode | null>(null)
 
     useEffect(() => {
         const audioEl = audioRef.current as AudioEnhancedElement | null
@@ -115,11 +116,12 @@ export default function NowPlayingBar({
         airFilterRef.current = air
 
         // 4. Dynamics Compressor (CRITICAL: Fixes volume fluctuation and prevents clipping)
+        // Optimized for Mobile Speakers: High threshold, low ratio for "Mastering" feel rather than "Pumping" feel
         const compressor = ctx.createDynamicsCompressor()
-        compressor.threshold.setValueAtTime(-24, ctx.currentTime)
-        compressor.knee.setValueAtTime(30, ctx.currentTime)
-        compressor.ratio.setValueAtTime(12, ctx.currentTime)
-        compressor.attack.setValueAtTime(0.003, ctx.currentTime)
+        compressor.threshold.setValueAtTime(-18, ctx.currentTime)
+        compressor.knee.setValueAtTime(40, ctx.currentTime)
+        compressor.ratio.setValueAtTime(4, ctx.currentTime)
+        compressor.attack.setValueAtTime(0.01, ctx.currentTime)
         compressor.release.setValueAtTime(0.25, ctx.currentTime)
         compressorRef.current = compressor
 
@@ -128,13 +130,19 @@ export default function NowPlayingBar({
         panner.pan.setValueAtTime(0, ctx.currentTime)
         pannerRef.current = panner
 
+        // 6. Master Gain (Capping to 0.85 to give OS headroom, prevents speaker ducking)
+        const masterGain = ctx.createGain()
+        masterGain.gain.setValueAtTime(0.85, ctx.currentTime)
+        masterGainRef.current = masterGain
+
         try { source.disconnect() } catch (_) { }
         source.connect(bass)
         bass.connect(clarity)
         clarity.connect(air)
         air.connect(panner)
         panner.connect(compressor)
-        compressor.connect(ctx.destination)
+        compressor.connect(masterGain)
+        masterGain.connect(ctx.destination)
 
         return () => {
             try {
@@ -143,6 +151,7 @@ export default function NowPlayingBar({
                 air.disconnect()
                 panner.disconnect()
                 compressor.disconnect()
+                masterGain.disconnect()
                 source.connect(ctx.destination)
             } catch (_) { }
         }
@@ -151,7 +160,7 @@ export default function NowPlayingBar({
     useEffect(() => {
         const audioEl = audioRef.current as AudioEnhancedElement | null
         const ctx = audioEl?._audioCtx
-        if (clarityFilterRef.current && airFilterRef.current && bassFilterRef.current && compressorRef.current && pannerRef.current && ctx) {
+        if (clarityFilterRef.current && airFilterRef.current && bassFilterRef.current && compressorRef.current && pannerRef.current && masterGainRef.current && ctx) {
             if (rawMode) {
                 // RAW SOUND: Completely flat and zero compressor interference
                 clarityFilterRef.current.gain.setTargetAtTime(0, ctx.currentTime, 0.1)
@@ -159,9 +168,10 @@ export default function NowPlayingBar({
                 bassFilterRef.current.gain.setTargetAtTime(0, ctx.currentTime, 0.1)
                 pannerRef.current.pan.setTargetAtTime(0, ctx.currentTime, 0.1)
 
-                // Disable compressor effect by setting threshold to 0 and ratio to 1
+                // Disable compressor effect but keep Master Gain for safety
                 compressorRef.current.threshold.setTargetAtTime(0, ctx.currentTime, 0.1)
                 compressorRef.current.ratio.setTargetAtTime(1, ctx.currentTime, 0.1)
+                masterGainRef.current.gain.setTargetAtTime(1.0, ctx.currentTime, 0.1) // Full power in raw mode
             } else {
                 // ENHANCED SOUND
                 clarityFilterRef.current.gain.setTargetAtTime(voiceClarity ? 3.5 : 0, ctx.currentTime, 0.2)
@@ -169,14 +179,33 @@ export default function NowPlayingBar({
                 bassFilterRef.current.gain.setTargetAtTime(bassBoost ? 5.0 : 0, ctx.currentTime, 0.2)
 
                 // Spatial effect (subtle width)
-                pannerRef.current.pan.setTargetAtTime(spatial ? 0.05 : 0, ctx.currentTime, 1.0) // Slow drift
+                pannerRef.current.pan.setTargetAtTime(spatial ? 0.05 : 0, ctx.currentTime, 1.0)
 
-                // Restore Compressor to stabilizing settings
-                compressorRef.current.threshold.setTargetAtTime(-24, ctx.currentTime, 0.2)
-                compressorRef.current.ratio.setTargetAtTime(12, ctx.currentTime, 0.2)
+                // Restore Compressor to subtle stabilizing settings
+                compressorRef.current.threshold.setTargetAtTime(-18, ctx.currentTime, 0.2)
+                compressorRef.current.ratio.setTargetAtTime(4, ctx.currentTime, 0.2)
+                masterGainRef.current.gain.setTargetAtTime(0.85, ctx.currentTime, 0.2)
             }
         }
     }, [voiceClarity, bassBoost, spatial, rawMode])
+
+    useEffect(() => {
+        if ('mediaSession' in navigator && track) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: track.title,
+                artist: track.channelTitle,
+                album: 'Serenity',
+                artwork: [
+                    { src: track.thumbnail || '', sizes: '512x512', type: 'image/jpeg' }
+                ]
+            });
+
+            navigator.mediaSession.setActionHandler('play', togglePlay);
+            navigator.mediaSession.setActionHandler('pause', togglePlay);
+            navigator.mediaSession.setActionHandler('previoustrack', onAlmostDone);
+            navigator.mediaSession.setActionHandler('nexttrack', onPlayNext);
+        }
+    }, [track.id])
 
     useEffect(() => {
         if (audioRef.current && src) {
