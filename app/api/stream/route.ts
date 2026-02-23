@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 
 /**
- * Serenity Streaming API (Binary Version - TV Client Bypass)
+ * Serenity Streaming API (Binary Version - Read-Only Fix)
  * ----------------------------------------------------
  */
 export async function GET(request: Request) {
@@ -16,13 +16,16 @@ export async function GET(request: Request) {
     }
 
     const binaryPath = path.join(process.cwd(), 'lib/yt-dlp');
-    const cookiesPath = path.join(process.cwd(), 'lib/cookies.txt');
+    const sourceCookiesPath = path.join(process.cwd(), 'lib/cookies.txt');
+    const targetCookiesPath = '/tmp/cookies.txt';
     const hasBinary = fs.existsSync(binaryPath);
-    const hasCookies = fs.existsSync(cookiesPath);
+    const hasSourceCookies = fs.existsSync(sourceCookiesPath);
 
+    // Choose command
     const spawnCmd = hasBinary ? binaryPath : (process.platform === 'win32' ? 'python' : 'python3');
     const baseArgs = !hasBinary ? ['-m', 'yt_dlp'] : [];
 
+    // Environment setup to prevent yt-dlp from trying to write to read-only home
     const env = {
         ...process.env,
         HOME: '/tmp',
@@ -32,6 +35,21 @@ export async function GET(request: Request) {
     if (hasBinary && process.env.VERCEL === '1') {
         try { fs.chmodSync(binaryPath, '755'); } catch (e) { }
     }
+
+    // Vercel fix: Copy cookies to /tmp since yt-dlp tries to update them (ReadOnly FS error)
+    let activeCookiesPath = null;
+    if (hasSourceCookies) {
+        try {
+            const cookieContent = fs.readFileSync(sourceCookiesPath, 'utf8');
+            fs.writeFileSync(targetCookiesPath, cookieContent);
+            activeCookiesPath = targetCookiesPath;
+            console.log(`[stream] Cookies copied to ${targetCookiesPath}`);
+        } catch (e: any) {
+            console.error(`[stream] Cookie copy failed: ${e.message}`);
+        }
+    }
+
+    console.log(`[stream] Spawning ${spawnCmd} for ${videoId}`);
 
     const args = [
         ...baseArgs,
@@ -44,13 +62,14 @@ export async function GET(request: Request) {
         '--no-part',
         '--no-cache-dir',
         '--force-ipv4',
-        '--extractor-args', 'youtube:player-client=tv,mweb,ios',
+        // 'ios' client skips cookies, so we use web/android
+        '--extractor-args', 'youtube:player-client=web,android,mweb',
         '--geo-bypass',
         `https://www.youtube.com/watch?v=${videoId}`
     ];
 
-    if (hasCookies) {
-        args.push('--cookies', cookiesPath);
+    if (activeCookiesPath) {
+        args.push('--cookies', activeCookiesPath);
     }
 
     let ytDlp: any;
@@ -79,6 +98,7 @@ export async function GET(request: Request) {
             });
 
             ytDlp.on('error', (err: any) => {
+                console.error(`[stream] process error: ${err.message}`);
                 controller.error(err);
             });
         },

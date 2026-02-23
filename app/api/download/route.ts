@@ -5,7 +5,7 @@ import os from 'os';
 import fs from 'fs';
 
 /**
- * Serenity Download API (Binary Version - TV Client Bypass)
+ * Serenity Download API (Binary Version - Read-Only Fix)
  */
 export async function POST(request: Request) {
     try {
@@ -20,9 +20,10 @@ export async function POST(request: Request) {
         const outputTemplate = path.join(tmpDir, `${videoId}.%(ext)s`);
 
         const binaryPath = path.join(process.cwd(), 'lib/yt-dlp');
-        const cookiesPath = path.join(process.cwd(), 'lib/cookies.txt');
+        const sourceCookiesPath = path.join(process.cwd(), 'lib/cookies.txt');
+        const targetCookiesPath = '/tmp/cookies_download.txt';
         const hasBinary = fs.existsSync(binaryPath);
-        const hasCookies = fs.existsSync(cookiesPath);
+        const hasSourceCookies = fs.existsSync(sourceCookiesPath);
 
         const spawnCmd = hasBinary ? binaryPath : (process.platform === 'win32' ? 'python' : 'python3');
         const baseArgs = !hasBinary ? ['-m', 'yt_dlp'] : [];
@@ -37,6 +38,18 @@ export async function POST(request: Request) {
             try { fs.chmodSync(binaryPath, '755'); } catch (e) { }
         }
 
+        // Vercel fix: Copy cookies to /tmp since yt-dlp tries to update them (ReadOnly FS error)
+        let activeCookiesPath = null;
+        if (hasSourceCookies) {
+            try {
+                const cookieContent = fs.readFileSync(sourceCookiesPath, 'utf8');
+                fs.writeFileSync(targetCookiesPath, cookieContent);
+                activeCookiesPath = targetCookiesPath;
+            } catch (e: any) {
+                console.error(`[download] Cookie copy failed: ${e.message}`);
+            }
+        }
+
         const args = [
             ...baseArgs,
             '-f', 'ba[ext=m4a]/ba',
@@ -45,14 +58,14 @@ export async function POST(request: Request) {
             '--no-part',
             '--no-cache-dir',
             '--force-ipv4',
-            '--extractor-args', 'youtube:player-client=tv,mweb,ios',
+            '--extractor-args', 'youtube:player-client=web,android,mweb',
             '--geo-bypass',
             '--output', outputTemplate,
             `https://www.youtube.com/watch?v=${videoId}`
         ];
 
-        if (hasCookies) {
-            args.push('--cookies', cookiesPath);
+        if (activeCookiesPath) {
+            args.push('--cookies', activeCookiesPath);
         }
 
         return new Promise<Response>((resolve) => {
