@@ -19,11 +19,8 @@ export async function GET(request: Request) {
     const libPath = path.join(cwd, 'lib');
     const binaryPath = path.join(libPath, 'yt-dlp');
     const denoPath = path.join(libPath, 'deno');
-    const sourceCookiesPath = path.join(libPath, 'cookies.txt');
-    const targetCookiesPath = '/tmp/cookies_stream.txt';
 
     const hasBinary = fs.existsSync(binaryPath);
-    const hasSourceCookies = fs.existsSync(sourceCookiesPath);
 
     // Choose command
     const spawnCmd = hasBinary ? binaryPath : (process.platform === 'win32' ? 'python' : 'python3');
@@ -45,18 +42,6 @@ export async function GET(request: Request) {
         }
     }
 
-    // Copy cookies to writable /tmp
-    let activeCookiesPath = null;
-    if (hasSourceCookies) {
-        try {
-            const cookieContent = fs.readFileSync(sourceCookiesPath, 'utf8');
-            fs.writeFileSync(targetCookiesPath, cookieContent);
-            activeCookiesPath = targetCookiesPath;
-        } catch (e: any) {
-            console.error(`[stream] Cookie copy failed: ${e.message}`);
-        }
-    }
-
     console.log(`[stream] Spawning ${spawnCmd} for ${videoId}`);
 
     const args = [
@@ -71,17 +56,13 @@ export async function GET(request: Request) {
         '--no-part',
         '--no-cache-dir',
         '--force-ipv4',
-        // TV and TVEmbed are the most reliable for bypassing blocks. 
-        // We put them first, but keep android/web as fallbacks.
-        '--extractor-args', 'youtube:player-client=tv,tvembed,android,web',
+        // iOS and Web are currently the most reliable for bypassing blocks with the latest yt-dlp.
+        // TV fails with DRM, iOS fails with PO token. We use web_creator which has no PO token JS checks.
+        '--extractor-args', 'youtube:player-client=web_creator,default',
         '--geo-bypass',
         '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         `https://www.youtube.com/watch?v=${videoId}`
     ];
-
-    if (activeCookiesPath) {
-        args.push('--cookies', activeCookiesPath);
-    }
 
     let ytDlp: any;
     try {
