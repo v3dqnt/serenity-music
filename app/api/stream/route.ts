@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     const sourceCookiesPath = path.join(libPath, 'cookies.txt');
     const targetCookiesPath = '/tmp/cookies_stream.txt';
 
-    const hasBinary = fs.existsSync(binaryPath);
+    const hasBinary = fs.existsSync(binaryPath) && process.platform !== 'win32';
     const hasSourceCookies = fs.existsSync(sourceCookiesPath);
 
     // Choose command

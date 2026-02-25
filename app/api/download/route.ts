@@ -26,7 +26,7 @@ export async function POST(request: Request) {
         const sourceCookiesPath = path.join(libPath, 'cookies.txt');
         const targetCookiesPath = '/tmp/cookies_download.txt';
 
-        const hasBinary = fs.existsSync(binaryPath);
+        const hasBinary = fs.existsSync(binaryPath) && process.platform !== 'win32';
         const hasSourceCookies = fs.existsSync(sourceCookiesPath);
 
         const spawnCmd = hasBinary ? binaryPath : (process.platform === 'win32' ? 'python' : 'python3');
