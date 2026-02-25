@@ -23,8 +23,11 @@ export async function POST(request: Request) {
         const libPath = path.join(cwd, 'lib');
         const binaryPath = path.join(libPath, 'yt-dlp');
         const denoPath = path.join(libPath, 'deno');
+        const sourceCookiesPath = path.join(libPath, 'cookies.txt');
+        const targetCookiesPath = '/tmp/cookies_download.txt';
 
         const hasBinary = fs.existsSync(binaryPath);
+        const hasSourceCookies = fs.existsSync(sourceCookiesPath);
 
         const spawnCmd = hasBinary ? binaryPath : (process.platform === 'win32' ? 'python' : 'python3');
         const baseArgs = !hasBinary ? ['-m', 'yt_dlp'] : [];
@@ -45,8 +48,13 @@ export async function POST(request: Request) {
             }
         }
 
+        if (hasSourceCookies && process.env.VERCEL === '1') {
+            try { fs.copyFileSync(sourceCookiesPath, targetCookiesPath); } catch (e) { }
+        }
+
         const args = [
             ...baseArgs,
+            ...(hasSourceCookies ? ['--cookies', process.env.VERCEL === '1' ? targetCookiesPath : sourceCookiesPath] : []),
             '-f', 'bestaudio[abr>=160]/bestaudio[ext=m4a][abr>=128]/bestaudio/best',
             '--no-playlist',
             '--no-check-certificates',

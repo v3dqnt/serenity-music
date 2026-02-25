@@ -19,8 +19,11 @@ export async function GET(request: Request) {
     const libPath = path.join(cwd, 'lib');
     const binaryPath = path.join(libPath, 'yt-dlp');
     const denoPath = path.join(libPath, 'deno');
+    const sourceCookiesPath = path.join(libPath, 'cookies.txt');
+    const targetCookiesPath = '/tmp/cookies_stream.txt';
 
     const hasBinary = fs.existsSync(binaryPath);
+    const hasSourceCookies = fs.existsSync(sourceCookiesPath);
 
     // Choose command
     const spawnCmd = hasBinary ? binaryPath : (process.platform === 'win32' ? 'python' : 'python3');
@@ -42,10 +45,15 @@ export async function GET(request: Request) {
         }
     }
 
+    if (hasSourceCookies && process.env.VERCEL === '1') {
+        try { fs.copyFileSync(sourceCookiesPath, targetCookiesPath); } catch (e) { }
+    }
+
     console.log(`[stream] Spawning ${spawnCmd} for ${videoId}`);
 
     const args = [
         ...baseArgs,
+        ...(hasSourceCookies ? ['--cookies', process.env.VERCEL === '1' ? targetCookiesPath : sourceCookiesPath] : []),
         // Prioritize Hi-Fi audio (160kbps+). Opus/AAC from TV clients is usually premium quality.
         '--format', 'bestaudio[abr>=160]/bestaudio[ext=m4a][abr>=128]/bestaudio/best',
         '--output', '-',
