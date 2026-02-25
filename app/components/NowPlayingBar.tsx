@@ -671,14 +671,14 @@ function ControlBtn({ active, onClick, icon, label, isMobile, disabled }: { acti
             onClick={onClick}
             disabled={disabled}
             className={`flex flex-col items-center justify-center ${isMobile ? 'gap-1.5 w-auto min-w-[64px] aspect-square p-2' : 'gap-2.5 w-24 aspect-square'} rounded-[32px] transition-all group active:scale-95 ${disabled ? 'opacity-20 cursor-not-allowed' : ''} ${active
-                ? 'bg-white text-black shadow-[0_20px_50px_rgba(255,255,255,0.3)]'
+                ? 'text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.6)] border border-white/10'
                 : 'text-white/30 hover:text-white hover:bg-white/5 border border-white/5'
                 }`}
         >
-            <div className={`${active ? 'scale-110' : 'group-hover:scale-110'} transition-all duration-300`}>
+            <div className={`${active ? 'scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]' : 'group-hover:scale-110'} transition-all duration-300`}>
                 {icon}
             </div>
-            <span className={`${isMobile ? 'text-[8px]' : 'text-[11px]'} font-accent uppercase tracking-[0.15em] ${active ? 'text-black font-bold' : 'text-white/20'}`}>{label}</span>
+            <span className={`${isMobile ? 'text-[8px]' : 'text-[11px]'} font-accent uppercase tracking-[0.15em] ${active ? 'text-white font-bold drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]' : 'text-white/20'}`}>{label}</span>
         </button>
     )
 }
