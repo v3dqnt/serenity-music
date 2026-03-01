@@ -54,8 +54,8 @@ export async function GET(request: Request) {
     const args = [
         ...baseArgs,
         ...(hasSourceCookies ? ['--cookies', process.env.VERCEL === '1' ? targetCookiesPath : sourceCookiesPath] : []),
-        // Prioritize Hi-Fi audio (160kbps+). Opus/AAC from TV clients is usually premium quality.
-        '--format', 'bestaudio[abr>=160]/bestaudio[ext=m4a][abr>=128]/bestaudio/best',
+        // Prioritize Hi-Fi audio (250kbps+). WebM/Opus is YouTube's highest quality format.
+        '--format', 'bestaudio[abr>=250]/bestaudio[ext=webm][abr>=160]/bestaudio[ext=m4a][abr>=128]/bestaudio/best',
         '--output', '-',
         '--quiet',
         '--no-playlist',

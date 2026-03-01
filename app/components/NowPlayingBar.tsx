@@ -461,7 +461,7 @@ function MiniPlayer({
     onTogglePlay, onSetIsExpanded, onSetShowQueue, onSetRepeat, onPlayNext, onAddToPlaylist, queueLength, queue, isMobile
 }: any) {
     return (
-        <div className="w-full h-full flex items-center gap-3 relative">
+        <div className={`w-full h-full ${isMobile ? 'flex items-center gap-3' : 'grid grid-cols-[auto_1fr_auto] items-center gap-4'} relative`}>
             {/* LEFT: Playback Controls (Desktop only) */}
             {!isMobile && (
                 <div className="flex items-center gap-3 shrink-0">
@@ -538,10 +538,10 @@ function MiniPlayer({
                     </div>
                 </>
             ) : (
-                /* ── DESKTOP: island layout ── */
+                /* ── DESKTOP: island layout — truly centered via grid ── */
                 <div
                     onClick={() => onSetIsExpanded(true)}
-                    className="flex-1 min-w-0 flex items-center bg-white/[0.03] border-t border-white/[0.12] border-x border-white/[0.05] rounded-[40px] px-4 py-2 gap-4 hover:bg-white/[0.06] transition-all cursor-pointer group/island max-w-[440px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.02)]"
+                    className="flex items-center bg-white/[0.03] border-t border-white/[0.12] border-x border-white/[0.05] rounded-[40px] px-4 py-2 gap-4 hover:bg-white/[0.06] transition-all cursor-pointer group/island w-full max-w-[500px] mx-auto shadow-[inset_0_0_0_1px_rgba(255,255,255,0.02)]"
                 >
                     <motion.div
                         layoutId="track-art"
@@ -552,7 +552,7 @@ function MiniPlayer({
 
                     <div className="flex-1 min-w-0 flex flex-col gap-1.5 justify-center">
                         <h4
-                            className="font-black tracking-tighter truncate text-white leading-tight text-xl"
+                            className="font-black tracking-tighter truncate text-white leading-tight text-[15px]"
                             dangerouslySetInnerHTML={{ __html: track.title }}
                         />
                         <div className="relative w-full h-[3px] bg-white/[0.08] rounded-full overflow-hidden">
@@ -574,24 +574,27 @@ function MiniPlayer({
 
             {/* RIGHT: Utility Controls (Desktop only) */}
             {!isMobile && (
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1 shrink-0 glass rounded-full px-2 py-1.5 border border-white/[0.06]">
                     <button
                         onClick={(e) => { e.stopPropagation(); onSetShowQueue(!showQueue) }}
-                        className={`p-2.5 rounded-full transition-all active:scale-90 ${showQueue ? 'text-white bg-white/10' : 'text-white/20 hover:text-white hover:bg-white/5'}`}
+                        title="Queue"
+                        className={`p-2 rounded-full transition-all active:scale-90 ${showQueue ? 'text-white bg-white/10' : 'text-white/30 hover:text-white hover:bg-white/5'}`}
                     >
-                        <List weight="bold" className="w-5 h-5" />
+                        <List weight="bold" className="w-4 h-4" />
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); onSetRepeat((r: any) => r === 'off' ? 'all' : r === 'all' ? 'one' : 'off') }}
-                        className={`p-2.5 rounded-full transition-all active:scale-90 ${repeat !== 'off' ? 'text-white bg-white/10' : 'text-white/20 hover:text-white hover:bg-white/5'}`}
+                        title={repeat === 'one' ? 'Repeat One' : repeat === 'all' ? 'Repeat All' : 'Repeat Off'}
+                        className={`p-2 rounded-full transition-all active:scale-90 ${repeat !== 'off' ? 'text-white bg-white/10' : 'text-white/30 hover:text-white hover:bg-white/5'}`}
                     >
-                        {repeat === 'one' ? <RepeatOnce weight="bold" className="w-5 h-5" /> : <Repeat weight="bold" className="w-5 h-5" />}
+                        {repeat === 'one' ? <RepeatOnce weight="bold" className="w-4 h-4" /> : <Repeat weight="bold" className="w-4 h-4" />}
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); onAddToPlaylist?.(track) }}
-                        className="p-2.5 rounded-full text-white/20 hover:text-white hover:bg-white/5 transition-all active:scale-90"
+                        title="Add to Playlist"
+                        className="p-2 rounded-full text-white/30 hover:text-white hover:bg-white/5 transition-all active:scale-90"
                     >
-                        <Plus weight="bold" className="w-5 h-5" />
+                        <Plus weight="bold" className="w-4 h-4" />
                     </button>
                 </div>
             )}

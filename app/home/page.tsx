@@ -360,10 +360,10 @@ export default function Home() {
             />
 
             {/* Content Container */}
-            <div className="relative z-10 w-full max-w-5xl mx-auto px-4 md:px-6 pt-4 md:pt-6 flex flex-col items-center min-h-screen">
+            <div className="relative z-10 w-full max-w-5xl mx-auto px-4 md:px-6 pt-4 md:pt-6 flex flex-col items-center flex-1">
 
                 {/* Content Area */}
-                <div className="w-full">
+                <div className="w-full flex-1 flex flex-col">
                     {/* Library View */}
                     {view === 'library' && (
                         <AnimatePresence mode="wait">
@@ -417,7 +417,7 @@ export default function Home() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -20 }}
-                                className={`w-full relative transition-all duration-500 ${selectedTrack ? 'mt-6 md:mt-12 mb-24 md:mb-48 md:scale-90 origin-top' : 'mt-6 md:mt-20 mb-4 md:mb-32'}`}
+                                className={`w-full flex-1 flex flex-col items-center justify-center transition-all duration-500 ${selectedTrack ? 'pb-24 md:pb-48 md:scale-90 origin-center' : 'pb-8 md:pb-16'}`}
                             >
                                 {libraryTracks.length > 0 ? (
                                     <CoverFlow tracks={libraryTracks.slice(0, 7)} onSelect={handlePlay} activeTrackId={selectedTrack?.id} loadingTrackId={loadingTrackId} libraryTracks={libraryTracks} />
