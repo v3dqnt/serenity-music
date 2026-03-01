@@ -12,7 +12,7 @@ import {
 
 interface NowPlayingBarProps {
     track: any
-    src: string
+    src: string | null
     onClose: () => void
     isLoading?: boolean
     queue?: any[]
@@ -241,18 +241,18 @@ export default function NowPlayingBar({
             gsap.to(overlayRef.current, { opacity: 0, duration: 0.5, ease: 'power3.inOut' })
             gsap.to(bgRef.current, { opacity: 0, duration: 0.5, ease: 'power3.inOut' })
 
-            const targetHeight = isMobile ? 72 : 88
-            const targetBottom = isMobile ? 24 : 36
+            const targetHeight = isMobile ? 60 : 88
+            const targetBottom = isMobile ? 20 : 36
             const targetTop = window.innerHeight - targetBottom - targetHeight
 
             gsap.to(containerRef.current, {
                 top: targetTop,
                 left: '50%',
                 xPercent: -50,
-                width: isMobile ? '92%' : '85%',
+                width: isMobile ? '82%' : '85%',
                 maxWidth: '840px',
                 height: targetHeight,
-                borderRadius: isMobile ? '24px' : '32px',
+                borderRadius: isMobile ? '32px' : '32px',
                 duration: 0.75,
                 ease: 'expo.inOut',
                 onComplete: () => {
@@ -264,14 +264,14 @@ export default function NowPlayingBar({
 
             gsap.to(barRef.current, {
                 height: '100%',
-                padding: isMobile ? '8px 16px' : '12px 36px',
-                borderRadius: isMobile ? '24px' : '32px',
-                background: isMobile ? 'rgba(20, 20, 25, 0.85)' : 'rgba(20, 20, 25, 0.45)',
-                backdropFilter: isMobile ? 'blur(12px) saturate(120%)' : 'blur(50px) saturate(220%)',
-                WebkitBackdropFilter: isMobile ? 'blur(12px) saturate(120%)' : 'blur(50px) saturate(220%)',
-                border: '1px solid rgba(255, 255, 255, 0.14)',
-                borderTop: '1px solid rgba(255, 255, 255, 0.28)',
-                boxShadow: isMobile ? '0 10px 30px rgba(0,0,0,0.5)' : '0 32px 64px -16px rgba(0, 0, 0, 0.7)',
+                padding: isMobile ? '6px 14px' : '12px 36px',
+                borderRadius: isMobile ? '20px' : '32px',
+                background: isMobile ? 'rgba(14, 14, 20, 0.92)' : 'rgba(20, 20, 25, 0.45)',
+                backdropFilter: isMobile ? 'blur(16px) saturate(140%)' : 'blur(50px) saturate(220%)',
+                WebkitBackdropFilter: isMobile ? 'blur(16px) saturate(140%)' : 'blur(50px) saturate(220%)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderTop: '1px solid rgba(255, 255, 255, 0.22)',
+                boxShadow: isMobile ? '0 8px 24px rgba(0,0,0,0.6)' : '0 32px 64px -16px rgba(0, 0, 0, 0.7)',
                 duration: 0.65,
                 ease: 'expo.inOut'
             })
@@ -313,7 +313,7 @@ export default function NowPlayingBar({
     }
 
     return (
-        <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center">
+        <div className="fixed inset-0 z-[300] pointer-events-none flex items-center justify-center">
             <div
                 ref={overlayRef}
                 onClick={() => setIsExpanded(false)}
@@ -322,28 +322,39 @@ export default function NowPlayingBar({
             />
 
             <div ref={bgRef} className="absolute inset-0 opacity-0 overflow-hidden pointer-events-none">
-                <motion.div
-                    animate={{ x: [0, 80, 0], y: [0, -40, 0], rotate: [0, 100, 0] }}
-                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                    className="absolute top-[-15%] left-[-5%] w-[90%] h-[90%] rounded-full blur-[140px] opacity-[0.35]"
-                    style={{ background: `radial-gradient(circle, ${track.thumbnail ? 'transparent' : 'rgba(255,255,255,0.08)'} 0%, transparent 70%)`, backgroundImage: `url(${track.thumbnail})`, backgroundSize: 'cover' }}
-                />
-                <motion.div
-                    animate={{ x: [0, -80, 0], y: [0, 50, 0], rotate: [360, 0, 360] }}
-                    transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-                    className="absolute bottom-[-15%] right-[-5%] w-[80%] h-[80%] rounded-full blur-[120px] opacity-[0.3] hue-rotate-[160deg]"
-                    style={{ background: `radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%)`, backgroundImage: `url(${track.thumbnail})`, backgroundSize: 'cover' }}
-                />
+                {isMobile ? (
+                    /* Solid gradient for mobile — clean, opaque, no see-through blobs */
+                    <div
+                        className="absolute inset-0"
+                        style={{ background: 'linear-gradient(160deg, #0d0d1c 0%, #08080f 45%, #000000 100%)' }}
+                    />
+                ) : (
+                    /* Animated blurred thumbnail blobs for desktop */
+                    <>
+                        <motion.div
+                            animate={{ x: [0, 80, 0], y: [0, -40, 0], rotate: [0, 100, 0] }}
+                            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                            className="absolute top-[-15%] left-[-5%] w-[90%] h-[90%] rounded-full blur-[140px] opacity-[0.35]"
+                            style={{ background: `radial-gradient(circle, ${track.thumbnail ? 'transparent' : 'rgba(255,255,255,0.08)'} 0%, transparent 70%)`, backgroundImage: `url(${track.thumbnail})`, backgroundSize: 'cover' }}
+                        />
+                        <motion.div
+                            animate={{ x: [0, -80, 0], y: [0, 50, 0], rotate: [360, 0, 360] }}
+                            transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                            className="absolute bottom-[-15%] right-[-5%] w-[80%] h-[80%] rounded-full blur-[120px] opacity-[0.3] hue-rotate-[160deg]"
+                            style={{ background: `radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%)`, backgroundImage: `url(${track.thumbnail})`, backgroundSize: 'cover' }}
+                        />
+                    </>
+                )}
             </div>
 
             <div
                 ref={containerRef}
-                className="absolute bottom-9 w-[85%] max-w-[840px] h-[88px] pointer-events-auto"
+                className="absolute bottom-5 md:bottom-9 w-[88%] md:w-[85%] max-w-[840px] h-[60px] md:h-[88px] pointer-events-auto"
                 style={{ left: '50%', transform: 'translateX(-50%)' }}
             >
                 <audio
                     ref={audioRef}
-                    src={src}
+                    src={src || undefined}
                     onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={handleLoadedMetadata}
                     onEnded={() => onPlayNext?.()}
@@ -356,7 +367,7 @@ export default function NowPlayingBar({
                 <div
                     ref={barRef}
                     className="relative w-full h-full flex items-center shadow-[0_32px_80px_rgba(0,0,0,0.6)] border border-white/12 group/bar bg-transparent rounded-[32px]"
-                    style={{ padding: isExpanded ? '0px' : '12px 24px' }}
+                    style={{ padding: isExpanded ? '0px' : (isMobile ? '6px 14px' : '12px 24px') }}
                 >
                     {isExpanded ? (
                         <FullScreenPlayer
@@ -404,10 +415,13 @@ export default function NowPlayingBar({
                 <AnimatePresence>
                     {showQueue && (
                         <motion.div
-                            initial={{ opacity: 0, y: isExpanded ? 40 : 20, scale: 0.95 }}
+                            initial={{ opacity: 0, y: isExpanded ? 40 : 20, scale: 0.8, originY: 1 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: isExpanded ? 40 : 20, scale: 0.95 }}
-                            className={`absolute right-0 w-[420px] max-h-[70vh] glass-panel rounded-[42px] p-8 flex flex-col z-[200] shadow-[0_48px_120px_-20px_rgba(0,0,0,0.9)] overflow-hidden ${isExpanded ? 'bottom-32' : 'bottom-[110px]'}`}
+                            exit={{ opacity: 0, y: isExpanded ? 40 : 20, scale: 0.8 }}
+                            className={`absolute w-[420px] max-h-[60vh] glass-panel rounded-[42px] p-8 flex flex-col z-[200] shadow-[0_48px_120px_-20px_rgba(0,0,0,0.9)] overflow-hidden ${isExpanded
+                                ? 'bottom-56 left-1/2 -translate-x-1/2 origin-bottom'
+                                : 'bottom-[110px] right-0 origin-bottom-right'
+                                }`}
                         >
                             <div className="flex justify-between items-center mb-8">
                                 <div>
@@ -447,8 +461,8 @@ function MiniPlayer({
     onTogglePlay, onSetIsExpanded, onSetShowQueue, onSetRepeat, onPlayNext, onAddToPlaylist, queueLength, queue, isMobile
 }: any) {
     return (
-        <div className="w-full h-full flex items-center justify-between gap-4 relative">
-            {/* LEFT: Playback Controls (Hidden on mobile) */}
+        <div className="w-full h-full flex items-center gap-3 relative">
+            {/* LEFT: Playback Controls (Desktop only) */}
             {!isMobile && (
                 <div className="flex items-center gap-3 shrink-0">
                     <button className="text-white/20 hover:text-white transition-all hover:scale-110 active:scale-95">
@@ -475,24 +489,72 @@ function MiniPlayer({
                 </div>
             )}
 
-            {/* CENTER: Now Playing Island (Becomes main area on mobile) */}
-            <div
-                onClick={() => onSetIsExpanded(true)}
-                className={`flex-1 min-w-0 flex items-center bg-white/[0.03] border-t border-white/[0.12] border-x border-white/[0.05] rounded-[40px] ${isMobile ? 'px-3 py-1.5 gap-3 border-none bg-transparent' : 'px-4 py-2 gap-4'} hover:bg-white/[0.06] transition-all cursor-pointer group/island ${isMobile ? 'max-w-none' : 'max-w-[440px]'} shadow-[inset_0_0_0_1px_rgba(255,255,255,0.02)]`}
-            >
-                <motion.div
-                    layoutId={isMobile ? undefined : "track-art"}
-                    className={`relative shrink-0 ${isMobile ? 'w-10 h-10' : 'w-9 h-9'} rounded-full shadow-xl overflow-hidden border border-white/10`}
-                >
-                    <img src={track.thumbnail} className="w-full h-full object-cover" alt="" />
-                </motion.div>
+            {isMobile ? (
+                /* ── MOBILE: clean, minimal strip — art | title + artist | play + next ── */
+                <>
+                    {/* Cover art — tap to expand fullscreen */}
+                    <motion.div
+                        onClick={() => onSetIsExpanded(true)}
+                        className="relative shrink-0 w-10 h-10 rounded-full shadow-xl overflow-hidden border border-white/10 cursor-pointer active:scale-95 transition-transform"
+                    >
+                        <img src={track.thumbnail} className="w-full h-full object-cover" alt="" />
+                    </motion.div>
 
-                <div className="flex-1 min-w-0 flex flex-col gap-0 md:gap-1.5 justify-center">
-                    <h4
-                        className={`font-black tracking-tighter truncate text-white leading-tight ${isMobile ? 'text-base' : 'text-xl'}`}
-                        dangerouslySetInnerHTML={{ __html: track.title }}
-                    />
-                    {!isMobile && (
+                    {/* Title + Artist — tap to expand */}
+                    <div
+                        onClick={() => onSetIsExpanded(true)}
+                        className="flex-1 min-w-0 cursor-pointer"
+                    >
+                        <h4
+                            className="font-black text-[13px] tracking-tight truncate text-white leading-snug"
+                            dangerouslySetInnerHTML={{ __html: track.title }}
+                        />
+                        <p className="text-[9px] font-black uppercase tracking-widest text-white/40 truncate mt-0.5">
+                            {track.channelTitle}
+                        </p>
+                    </div>
+
+                    {/* Play + Next */}
+                    <div className="flex items-center gap-2.5 shrink-0">
+                        <button
+                            onClick={e => { e.stopPropagation(); onTogglePlay() }}
+                            disabled={isLoading}
+                            className="bg-white text-black rounded-full flex items-center justify-center w-9 h-9 shadow-lg active:scale-90 transition-all"
+                        >
+                            {isLoading ? (
+                                <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                            ) : isPlaying ? (
+                                <Pause weight="fill" className="w-4 h-4" />
+                            ) : (
+                                <Play weight="fill" className="w-4 h-4 translate-x-px" />
+                            )}
+                        </button>
+                        <button
+                            onClick={e => { e.stopPropagation(); onPlayNext?.() }}
+                            className="text-white/40 active:scale-90 transition-all"
+                        >
+                            <SkipForward weight="fill" className="w-5 h-5" />
+                        </button>
+                    </div>
+                </>
+            ) : (
+                /* ── DESKTOP: island layout ── */
+                <div
+                    onClick={() => onSetIsExpanded(true)}
+                    className="flex-1 min-w-0 flex items-center bg-white/[0.03] border-t border-white/[0.12] border-x border-white/[0.05] rounded-[40px] px-4 py-2 gap-4 hover:bg-white/[0.06] transition-all cursor-pointer group/island max-w-[440px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.02)]"
+                >
+                    <motion.div
+                        layoutId="track-art"
+                        className="relative shrink-0 w-9 h-9 rounded-full shadow-xl overflow-hidden border border-white/10"
+                    >
+                        <img src={track.thumbnail} className="w-full h-full object-cover" alt="" />
+                    </motion.div>
+
+                    <div className="flex-1 min-w-0 flex flex-col gap-1.5 justify-center">
+                        <h4
+                            className="font-black tracking-tighter truncate text-white leading-tight text-xl"
+                            dangerouslySetInnerHTML={{ __html: track.title }}
+                        />
                         <div className="relative w-full h-[3px] bg-white/[0.08] rounded-full overflow-hidden">
                             <motion.div
                                 className="h-full bg-white shadow-[0_0_10px_white]"
@@ -500,38 +562,17 @@ function MiniPlayer({
                                 transition={{ type: "spring", bounce: 0, duration: 0.3 }}
                             />
                         </div>
-                    )}
-                </div>
-
-                {isMobile ? (
-                    <div className="flex items-center gap-4 shrink-0 px-2">
-                        <button
-                            onClick={e => { e.stopPropagation(); onTogglePlay() }}
-                            disabled={isLoading}
-                            className="bg-white text-black rounded-full flex items-center justify-center w-9 h-9 shadow-lg"
-                        >
-                            {isLoading ? (
-                                <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                            ) : isPlaying ? (
-                                <Pause weight="fill" className="w-5 h-5" />
-                            ) : (
-                                <Play weight="fill" className="w-5 h-5 translate-x-0.5" />
-                            )}
-                        </button>
-                        <button onClick={e => { e.stopPropagation(); onPlayNext() }} className="text-white/60 hover:text-white">
-                            <SkipForward weight="fill" className="w-6 h-6" />
-                        </button>
                     </div>
-                ) : (
+
                     <div className="flex items-center gap-2 shrink-0 opacity-20 group-hover/island:opacity-100 transition-opacity">
                         <button className="p-1 hover:text-white text-white/40 transition-colors">
                             <DotsThree weight="bold" className="w-5 h-5" />
                         </button>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
-            {/* RIGHT: Utility Controls */}
+            {/* RIGHT: Utility Controls (Desktop only) */}
             {!isMobile && (
                 <div className="flex items-center gap-1.5 shrink-0">
                     <button
@@ -565,102 +606,156 @@ function FullScreenPlayer({
     onTogglePlay, onSeek, onSetIsExpanded, onSetVoiceClarity, onSetRepeat, onSetShowQueue, onPlayNext, fmt, isMobile
 }: any) {
     return (
-        <div className={`w-full h-full flex flex-col items-center justify-center ${isMobile ? 'gap-6 px-6' : 'gap-8 px-12'} max-w-5xl mx-auto py-10 relative overflow-hidden`}>
+        <div className={`w-full h-full relative overflow-hidden flex flex-col`}>
+            {/* Mobile: animated album-art-matched background */}
+            {isMobile && (
+                <div className="absolute inset-0 z-0 overflow-hidden">
+                    {/* Animated blurred art — slow drift extracts ambient color */}
+                    <motion.div
+                        className="absolute inset-[-60px]"
+                        animate={{
+                            x: [0, 18, -12, 0],
+                            y: [0, -14, 10, 0],
+                            scale: [1.15, 1.22, 1.18, 1.15],
+                        }}
+                        transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+                        style={{
+                            backgroundImage: `url(${track.thumbnail})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            filter: 'blur(60px) saturate(200%) brightness(0.65)',
+                        }}
+                    />
+                    {/* Minimal bottom vignette only — keeps text readable without killing colors */}
+                    <div
+                        className="absolute inset-0"
+                        style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.18) 50%, rgba(0,0,0,0.55) 100%)' }}
+                    />
+                </div>
+            )}
+
             <button
                 onClick={() => onSetIsExpanded(false)}
-                className={`absolute ${isMobile ? 'top-6 left-6 p-3 rounded-[24px]' : 'top-10 left-10 p-4 rounded-[28px]'} glass hover:bg-white/10 text-white/40 hover:text-white transition-all z-20 group active:scale-90`}
+                className={`absolute ${isMobile ? 'top-6 left-6 p-3 rounded-[24px]' : 'top-8 left-8 p-4 rounded-[28px]'} bg-white/5 backdrop-blur-xl hover:bg-white/10 text-white/40 hover:text-white transition-all z-30 group active:scale-90`}
             >
                 <CaretDown weight="bold" className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} transform group-hover:translate-y-0.5 transition-transform`} />
             </button>
 
-            <motion.div
-                layoutId={isMobile ? undefined : "track-art"}
-                initial={isMobile ? { opacity: 0, scale: 0.9 } : false}
-                animate={isMobile ? { opacity: 1, scale: 1 } : {}}
-                className={`relative shrink-0 ${isMobile ? 'w-[280px] h-[280px] rounded-[48px]' : 'w-[360px] h-[360px] rounded-[64px]'} shadow-[0_40px_100px_rgba(0,0,0,0.7)] overflow-hidden border-[5px] border-white/20`}
-            >
-                <img src={track.thumbnail} className="w-full h-full object-cover" alt="" />
-                {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-md">
-                        <div className={`w-14 h-14 ${isMobile ? 'border-[3px]' : 'border-[5px]'} border-white border-t-transparent rounded-full animate-spin shadow-[0_0_20px_white]`} />
-                    </div>
-                )}
-            </motion.div>
+            <div className={`w-full h-full flex flex-col items-center justify-center ${isMobile ? 'gap-6 px-6' : 'gap-8 px-12'} max-w-5xl mx-auto py-10 relative z-10`}>
 
-            <div className="flex flex-col text-center w-full gap-8 md:gap-10">
-                <div className="space-y-3 md:space-y-4">
-                    <h4
-                        className={`font-black tracking-tighter truncate text-white leading-[1.1] ${isMobile ? 'text-3xl' : 'text-5xl'} drop-shadow-2xl px-4`}
-                        dangerouslySetInnerHTML={{ __html: track.title }}
-                    />
-                    <p className={`font-black uppercase tracking-[0.4em] text-white/40 ${isMobile ? 'text-[9px]' : 'text-[11px]'}`}>
-                        {isLoading ? 'Decrypting Stream...' : track.channelTitle}
-                    </p>
-                </div>
+                <motion.div
+                    layoutId={isMobile ? undefined : "track-art"}
+                    initial={isMobile ? { opacity: 0, scale: 0.9 } : false}
+                    animate={isMobile ? { opacity: 1, scale: 1 } : {}}
+                    className={`relative shrink-0 ${isMobile ? 'w-[280px] h-[280px] rounded-[48px]' : 'w-[360px] h-[360px] rounded-[64px]'} shadow-[0_40px_100px_rgba(0,0,0,0.7)] overflow-hidden border-[5px] border-white/20`}
+                >
+                    <img src={track.thumbnail} className="w-full h-full object-cover" alt="" />
+                    {isLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-md">
+                            <div className={`w-14 h-14 ${isMobile ? 'border-[3px]' : 'border-[5px]'} border-white border-t-transparent rounded-full animate-spin shadow-[0_0_20px_white]`} />
+                        </div>
+                    )}
+                </motion.div>
 
-                <div className="w-full max-w-3xl mx-auto space-y-8 md:space-y-10">
-                    <div className="space-y-4 md:space-y-5">
-                        <input
-                            type="range"
-                            min="0" max="100"
-                            value={progress || 0}
-                            onChange={onSeek}
-                            className="w-full h-1.5 md:h-2 cursor-pointer appearance-none bg-white/10 rounded-full accent-white hover:bg-white/20 transition-colors"
+                <div className="flex flex-col text-center w-full gap-8 md:gap-10">
+                    <div className="space-y-3 md:space-y-4">
+                        <h4
+                            className={`font-black tracking-tighter truncate text-white leading-[1.1] ${isMobile ? 'text-2xl' : 'text-4xl'} drop-shadow-2xl px-4`}
+                            dangerouslySetInnerHTML={{ __html: track.title }}
                         />
-                        <div className="flex justify-between text-[9px] font-black tracking-[0.2em] text-white/30 uppercase">
-                            <span>{fmt(currentTime)}</span>
-                            <span>{fmt(duration)}</span>
+                        <p className={`font-black uppercase tracking-[0.4em] text-white/60 ${isMobile ? 'text-[10px]' : 'text-[12px]'}`}>
+                            {isLoading ? 'Decrypting Stream...' : track.channelTitle}
+                        </p>
+                    </div>
+
+                    <div className="w-full max-w-3xl mx-auto space-y-8 md:space-y-10">
+                        <div className="space-y-4 md:space-y-5">
+                            <div className="relative group/progress">
+                                <input
+                                    type="range"
+                                    min="0" max="100"
+                                    value={progress || 0}
+                                    onChange={onSeek}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                />
+                                <div className="relative w-full h-1.5 md:h-3 bg-white/5 rounded-full overflow-hidden backdrop-blur-sm border border-white/5 group-hover/progress:h-2.5 md:group-hover/progress:h-4 transition-all duration-300">
+                                    {/* Glowing Fill */}
+                                    <motion.div
+                                        className="absolute top-0 left-0 h-full bg-gradient-to-r from-white/40 via-white to-white/40 shadow-[0_0_20px_white]"
+                                        initial={false}
+                                        animate={{ width: `${progress}%` }}
+                                        transition={{ type: "spring", bounce: 0, duration: 0.2 }}
+                                    />
+                                    {/* Pulsing Glow Effect */}
+                                    <motion.div
+                                        className="absolute top-0 right-0 w-12 h-full bg-white blur-md"
+                                        animate={{ opacity: [0.4, 0.8, 0.4] }}
+                                        transition={{ duration: 2, repeat: Infinity }}
+                                        style={{ left: `calc(${progress}% - 24px)` }}
+                                    />
+                                </div>
+                                {/* Floating Thumb */}
+                                <motion.div
+                                    className="absolute top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 bg-white rounded-full shadow-[0_0_15px_white] border-2 border-white/20 opacity-0 group-hover/progress:opacity-100 transition-opacity pointer-events-none"
+                                    animate={{ left: `calc(${progress}% - 10px)` }}
+                                    transition={{ type: "spring", bounce: 0, duration: 0.1 }}
+                                />
+                            </div>
+                            <div className="flex justify-between text-[9px] font-black tracking-[0.2em] text-white/30 uppercase">
+                                <span>{fmt(currentTime)}</span>
+                                <span>{fmt(duration)}</span>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-center gap-6 md:gap-8 mx-auto">
+                            <ControlBtn
+                                active={voiceClarity}
+                                onClick={() => onSetVoiceClarity(!voiceClarity)}
+                                icon={<MagicWand weight={voiceClarity ? "fill" : "light"} className={isMobile ? "w-6 h-6" : "w-7 h-7"} />}
+                                label="Clarity"
+                                isMobile={isMobile}
+                            />
+                            <ControlBtn
+                                active={showQueue}
+                                onClick={() => onSetShowQueue(!showQueue)}
+                                icon={<List weight={showQueue ? "fill" : "light"} className={isMobile ? "w-6 h-6" : "w-7 h-7"} />}
+                                label="Queue"
+                                isMobile={isMobile}
+                            />
+                            <ControlBtn
+                                active={repeat !== 'off'}
+                                onClick={() => onSetRepeat((r: any) => r === 'off' ? 'all' : r === 'all' ? 'one' : 'off')}
+                                icon={repeat === 'one' ? <RepeatOnce weight="fill" className={isMobile ? "w-6 h-6" : "w-7 h-7"} /> : <Repeat weight={repeat !== 'off' ? "fill" : "light"} className={isMobile ? "w-6 h-6" : "w-7 h-7"} />}
+                                label={repeat === 'one' ? 'Repeat 1' : 'Repeat'}
+                                isMobile={isMobile}
+                            />
+                        </div>
+
+                        <div className={`flex items-center justify-center gap-10 md:gap-12 ${isMobile ? 'scale-[1.1]' : 'scale-[1.25]'} mt-6`}>
+                            <button className="text-white/30 hover:text-white transition-all hover:scale-120 active:scale-95">
+                                <SkipBack weight="fill" className={isMobile ? "w-7 h-7" : "w-8 h-8"} />
+                            </button>
+                            <button
+                                onClick={onTogglePlay}
+                                disabled={isLoading}
+                                className={`group relative rounded-full flex items-center justify-center transition-all bg-white text-black shadow-[0_0_40px_rgba(255,255,255,0.4)] hover:scale-110 active:scale-90 ${isMobile ? 'w-12 h-12' : 'w-14 h-14'}`}
+                            >
+                                {isLoading ? (
+                                    <div className={`${isMobile ? 'w-5 h-5 border-2' : 'w-6 h-6 border-3'} border-black border-t-transparent rounded-full animate-spin`} />
+                                ) : isPlaying ? (
+                                    <Pause weight="fill" className={isMobile ? "w-7 h-7" : "w-8 h-8"} />
+                                ) : (
+                                    <Play weight="fill" className={`${isMobile ? 'w-7 h-7' : 'w-8 h-8'} translate-x-0.5`} />
+                                )}
+                            </button>
+                            <button onClick={onPlayNext} className="text-white/30 hover:text-white transition-all hover:scale-120 active:scale-95">
+                                <SkipForward weight="fill" className={isMobile ? "w-7 h-7" : "w-8 h-8"} />
+                            </button>
                         </div>
                     </div>
-
-                    <div className="flex items-center justify-center gap-6 md:gap-8 mx-auto">
-                        <ControlBtn
-                            active={voiceClarity}
-                            onClick={() => onSetVoiceClarity(!voiceClarity)}
-                            icon={<MagicWand weight={voiceClarity ? "fill" : "light"} className={isMobile ? "w-6 h-6" : "w-7 h-7"} />}
-                            label="Clarity"
-                            isMobile={isMobile}
-                        />
-                        <ControlBtn
-                            active={showQueue}
-                            onClick={() => onSetShowQueue(!showQueue)}
-                            icon={<List weight={showQueue ? "fill" : "light"} className={isMobile ? "w-6 h-6" : "w-7 h-7"} />}
-                            label="Queue"
-                            isMobile={isMobile}
-                        />
-                        <ControlBtn
-                            active={repeat !== 'off'}
-                            onClick={() => onSetRepeat((r: any) => r === 'off' ? 'all' : r === 'all' ? 'one' : 'off')}
-                            icon={repeat === 'one' ? <RepeatOnce weight="fill" className={isMobile ? "w-6 h-6" : "w-7 h-7"} /> : <Repeat weight={repeat !== 'off' ? "fill" : "light"} className={isMobile ? "w-6 h-6" : "w-7 h-7"} />}
-                            label={repeat === 'one' ? 'Repeat 1' : 'Repeat'}
-                            isMobile={isMobile}
-                        />
-                    </div>
-
-                    <div className={`flex items-center justify-center gap-10 md:gap-12 ${isMobile ? 'scale-[1.1]' : 'scale-[1.25]'} mt-6`}>
-                        <button className="text-white/30 hover:text-white transition-all hover:scale-120 active:scale-95">
-                            <SkipBack weight="fill" className={isMobile ? "w-7 h-7" : "w-8 h-8"} />
-                        </button>
-                        <button
-                            onClick={onTogglePlay}
-                            disabled={isLoading}
-                            className={`group relative rounded-full flex items-center justify-center transition-all bg-white text-black shadow-[0_0_40px_rgba(255,255,255,0.4)] hover:scale-110 active:scale-90 ${isMobile ? 'w-12 h-12' : 'w-14 h-14'}`}
-                        >
-                            {isLoading ? (
-                                <div className={`${isMobile ? 'w-5 h-5 border-2' : 'w-6 h-6 border-3'} border-black border-t-transparent rounded-full animate-spin`} />
-                            ) : isPlaying ? (
-                                <Pause weight="fill" className={isMobile ? "w-7 h-7" : "w-8 h-8"} />
-                            ) : (
-                                <Play weight="fill" className={`${isMobile ? 'w-7 h-7' : 'w-8 h-8'} translate-x-0.5`} />
-                            )}
-                        </button>
-                        <button onClick={onPlayNext} className="text-white/30 hover:text-white transition-all hover:scale-120 active:scale-95">
-                            <SkipForward weight="fill" className={isMobile ? "w-7 h-7" : "w-8 h-8"} />
-                        </button>
-                    </div>
                 </div>
-            </div>
 
+            </div>
         </div>
     )
 }
@@ -671,8 +766,8 @@ function ControlBtn({ active, onClick, icon, label, isMobile, disabled }: { acti
             onClick={onClick}
             disabled={disabled}
             className={`flex flex-col items-center justify-center ${isMobile ? 'gap-1.5 w-auto min-w-[64px] aspect-square p-2' : 'gap-2.5 w-24 aspect-square'} rounded-[32px] transition-all group active:scale-95 ${disabled ? 'opacity-20 cursor-not-allowed' : ''} ${active
-                ? 'text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.6)] border border-white/10'
-                : 'text-white/30 hover:text-white hover:bg-white/5 border border-white/5'
+                ? 'text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.6)]'
+                : 'text-white/30 hover:text-white hover:bg-white/5'
                 }`}
         >
             <div className={`${active ? 'scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]' : 'group-hover:scale-110'} transition-all duration-300`}>

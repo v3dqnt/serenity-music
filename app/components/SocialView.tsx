@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import ViewContent from './ViewContent'
 
 interface SocialViewProps {
     user: any
@@ -23,6 +24,7 @@ export default function SocialView({ user, onPlay, currentTrackId, loadingTrackI
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState<string | null>(null)
+    const [copiedUid, setCopiedUid] = useState(false)
 
     // Fetch friends list only (lightweight, on mount)
     const fetchFriends = useCallback(async () => {
@@ -147,27 +149,49 @@ export default function SocialView({ user, onPlay, currentTrackId, loadingTrackI
     const activeFriends = friends.filter(f => f.status === 'accepted')
     const friendRequests = friends.filter(f => f.status === 'pending' && f.direction === 'received')
 
+    const handleCopyUid = () => {
+        if (!user?.id) return
+        navigator.clipboard.writeText(user.id)
+        setCopiedUid(true)
+        setTimeout(() => setCopiedUid(false), 2000)
+    }
+
+    const socialAction = (
+        <div className="flex flex-wrap items-center gap-2">
+            <button
+                onClick={handleCopyUid}
+                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${copiedUid ? 'bg-white/10 text-white border-white/20' : 'glass text-white/30 border-white/5 hover:border-white/20 hover:text-white/60'}`}
+            >
+                {copiedUid ? (
+                    <>
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                        Copied!
+                    </>
+                ) : (
+                    <>
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                        Copy UID
+                    </>
+                )}
+            </button>
+            <button onClick={() => { setShowAddForm(!showAddForm); setShowManage(false); }} className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${showAddForm ? 'bg-white text-black border-white shadow-xl shadow-white/10' : 'glass text-white/40 border-white/5 hover:border-white/20'}`}>+ Add Friend</button>
+            <button onClick={() => { setShowManage(!showManage); setShowAddForm(false); }} className={`relative px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${showManage ? 'bg-white text-black border-white shadow-xl shadow-white/10' : 'glass text-white/40 border-white/5 hover:border-white/20'}`}>
+                Manage
+                {friendRequests.length > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-white text-black border-2 border-black rounded-full text-[8px] flex items-center justify-center font-black">{friendRequests.length}</span>}
+            </button>
+        </div>
+    )
+
     return (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-4xl mx-auto py-12 px-4">
-            {/* Header / Actions */}
-            <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-6">
-                <div className="text-center md:text-left">
-                    <h2 className="text-4xl font-black text-white uppercase tracking-tighter">Social</h2>
-                    <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.25em] mt-3">Listening with friends</p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <button onClick={() => { setShowAddForm(!showAddForm); setShowManage(false); }} className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${showAddForm ? 'bg-white text-black border-white shadow-xl shadow-white/10' : 'glass text-white/40 border-white/5 hover:border-white/20'}`}>+ Add Friend</button>
-                    <button onClick={() => { setShowManage(!showManage); setShowAddForm(false); }} className={`relative px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${showManage ? 'bg-white text-black border-white shadow-xl shadow-white/10' : 'glass text-white/40 border-white/5 hover:border-white/20'}`}>
-                        Manage
-                        {friendRequests.length > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-white text-black border-2 border-black rounded-full text-[8px] flex items-center justify-center font-black">{friendRequests.length}</span>}
-                    </button>
-                </div>
-            </div>
-
+        <ViewContent
+            title="Social"
+            subtitle="Listening with friends"
+            action={socialAction}
+            refreshKey={activity.length + friends.length + (syncing ? 1 : 0)}
+        >
             {/* Global error display */}
             {error && !showAddForm && (
-                <div className="mb-8 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold">
+                <div className="mb-8 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold modular-item opacity-0">
                     {error}
                 </div>
             )}
@@ -177,7 +201,7 @@ export default function SocialView({ user, onPlay, currentTrackId, loadingTrackI
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden mb-12">
                         <div className="glass-panel rounded-[32px] p-8 border border-white/10 bg-white/[0.02]">
                             <h3 className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-6">Connect with a UID</h3>
-                            <form onSubmit={handleAddFriend} className="flex gap-4">
+                            <form onSubmit={handleAddFriend} className="flex flex-col sm:flex-row gap-4">
                                 <input type="text" value={newFriendId} onChange={e => setNewFriendId(e.target.value)} placeholder="Paste UID..." className="flex-1 bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 text-sm font-medium text-white focus:outline-none focus:border-white/30 transition-all" />
                                 <button type="submit" disabled={loading} className="px-8 py-4 rounded-2xl bg-white text-black text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all">Add</button>
                             </form>
@@ -243,8 +267,8 @@ export default function SocialView({ user, onPlay, currentTrackId, loadingTrackI
                                             <h4 className="font-bold text-white text-xs">{friend.friend_name}</h4>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <button onClick={() => inviteToJam(friend.friend_id)} className="opacity-0 group-hover:opacity-100 px-3 py-1.5 rounded-lg border border-white/10 text-[8px] font-black uppercase text-white/40 hover:text-white hover:border-white/20 transition-all">Invite</button>
-                                            <button onClick={() => deleteConnection(friend.friendship_id)} className="opacity-0 group-hover:opacity-100 p-2 text-white/20 hover:text-red-400 transition-all"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12" /></svg></button>
+                                            <button onClick={() => inviteToJam(friend.friend_id)} className="md:opacity-0 md:group-hover:opacity-100 px-3 py-1.5 rounded-lg border border-white/10 text-[8px] font-black uppercase text-white/40 hover:text-white hover:border-white/20 transition-all">Invite</button>
+                                            <button onClick={() => deleteConnection(friend.friendship_id)} className="md:opacity-0 md:group-hover:opacity-100 p-2 text-white/20 hover:text-red-400 transition-all"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12" /></svg></button>
                                         </div>
                                     </div>
                                 ))}
@@ -256,7 +280,7 @@ export default function SocialView({ user, onPlay, currentTrackId, loadingTrackI
 
             {/* Friend Activity Feed */}
             <div className="space-y-8">
-                <div className="flex items-center justify-center gap-4 mb-8">
+                <div className="flex items-center justify-center gap-4 mb-8 modular-item opacity-0">
                     <h3 className="text-[11px] font-black text-white uppercase tracking-[0.4em] opacity-50">Friend Activity</h3>
                     <button
                         onClick={syncActivity}
@@ -275,7 +299,7 @@ export default function SocialView({ user, onPlay, currentTrackId, loadingTrackI
                     )}
                 </div>
                 {activity.length === 0 ? (
-                    <div className="py-32 text-center glass-panel rounded-[48px] border border-dashed border-white/5 flex flex-col items-center justify-center bg-white/[0.01]">
+                    <div className="py-32 text-center glass-panel rounded-[48px] border border-dashed border-white/5 flex flex-col items-center justify-center bg-white/[0.01] modular-item opacity-0">
                         <div className="w-16 h-16 rounded-full glass border border-white/5 flex items-center justify-center mb-6 opacity-20"><svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg></div>
                         <p className="text-white/20 text-[10px] font-black uppercase tracking-widest px-8 leading-relaxed text-center">No recent activity. Hit Sync to check what your friends are vibing to.</p>
                     </div>
@@ -292,11 +316,9 @@ export default function SocialView({ user, onPlay, currentTrackId, loadingTrackI
                             const isSelected = currentTrackId === item.track_id && item.track_id !== null
 
                             return (
-                                <motion.div
+                                <div
                                     key={item.friend_id + (item.track_id || '')}
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className={`glass-panel rounded-[32px] overflow-hidden border transition-all group relative aspect-[1.8/1] flex flex-col justify-end p-6 cursor-pointer ${isSelected ? 'border-white/40 ring-2 ring-white/10' : 'border-white/10 hover:border-white/20'}`}
+                                    className={`modular-item opacity-0 glass-panel rounded-[32px] overflow-hidden border transition-all group relative aspect-[1.8/1] flex flex-col justify-end p-4 md:p-6 cursor-pointer ${isSelected ? 'border-white/40 ring-2 ring-white/10' : 'border-white/10 hover:border-white/20'}`}
                                     onClick={() => onPlay(trackObj)}
                                 >
                                     {item.track_thumbnail && <div className="absolute inset-0 pointer-events-none"><img src={item.track_thumbnail} alt="" className="w-full h-full object-cover scale-110 blur-[60px] opacity-40 group-hover:opacity-60 transition-opacity duration-700" /><div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" /></div>}
@@ -330,12 +352,12 @@ export default function SocialView({ user, onPlay, currentTrackId, loadingTrackI
                                             </div>
                                         </div>
                                     </div>
-                                </motion.div>
+                                </div>
                             )
                         })}
                     </div>
                 )}
             </div>
-        </motion.div>
+        </ViewContent>
     )
 }

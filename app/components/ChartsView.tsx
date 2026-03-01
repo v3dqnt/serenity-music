@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import ViewContent from './ViewContent'
 
 interface Track {
     id: string | null
@@ -35,26 +36,13 @@ const REGIONS: Region[] = [
     { code: 'DE', name: 'Germany' },
 ];
 
-const SOURCES = [
-    { id: 'youtube', name: 'YouTube', icon: '🔥' },
-    { id: 'billboard', name: 'Billboard', icon: '📈' },
-    { id: 'shazam', name: 'Shazam', icon: '⚡' },
-    { id: 'spotify', name: 'Spotify', icon: '🎧' },
-];
 
 export default function ChartsView({ onPlay, currentTrackId, loadingTrackId }: ChartsViewProps) {
     const [tracks, setTracks] = useState<Track[]>([])
     const [loading, setLoading] = useState(true)
     const [region, setRegion] = useState('US')
-    const [source, setSource] = useState('youtube')
-    const [isMobile, setIsMobile] = useState(false)
+    const source = 'shazam'
 
-    useEffect(() => {
-        const checkMobile = () => setIsMobile(window.innerWidth < 768)
-        checkMobile()
-        window.addEventListener('resize', checkMobile)
-        return () => window.removeEventListener('resize', checkMobile)
-    }, [])
 
     useEffect(() => {
         const fetchCharts = async () => {
@@ -83,73 +71,50 @@ export default function ChartsView({ onPlay, currentTrackId, loadingTrackId }: C
         return views
     }
 
+    const chartsAction = (
+        <div className="flex flex-wrap justify-center md:justify-end gap-1.5 md:gap-2">
+            {REGIONS.map((r) => (
+                <button
+                    key={r.code}
+                    onClick={() => setRegion(r.code)}
+                    className={`px-3 py-1.5 rounded-full text-[8px] md:text-[9px] font-black uppercase transition-all ${region === r.code
+                        ? 'bg-white/10 text-white border-white/20'
+                        : 'text-white/20 hover:text-white border-transparent hover:bg-white/5'
+                        } border`}
+                >
+                    {r.name}
+                </button>
+            ))}
+        </div>
+    )
+
     return (
-        <div className="w-full">
-            <div className="flex flex-col items-center justify-between mb-12 gap-6">
-                <div className="text-center w-full">
-                    <h2 className="heading-xl !text-5xl uppercase">Charts</h2>
-                    <p className="label-caps opacity-40 mt-3">The world's most played music</p>
-                </div>
-
-                {/* Source Selector */}
-                <div className="flex flex-wrap justify-center gap-2 md:gap-0 md:flex-nowrap md:liquid-glass md:p-1.5 rounded-[28px] md:border-white/5 md:shadow-2xl md:backdrop-blur-3xl">
-                    {SOURCES.map((s) => (
-                        <button
-                            key={s.id}
-                            onClick={() => setSource(s.id)}
-                            className={`px-4 py-2 md:px-6 md:py-3 rounded-full md:rounded-[22px] nav-text transition-all flex items-center gap-2 md:gap-3 ${source === s.id
-                                ? 'bg-white text-black shadow-xl md:scale-105'
-                                : 'text-white/30 hover:text-white hover:bg-white/5 glass md:bg-transparent md:border-none'
-                                }`}
-                        >
-                            <span className="text-base md:text-lg">{s.icon}</span>
-                            <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">{s.name}</span>
-                        </button>
-                    ))}
-                </div>
-
-                {/* Region Selector (Only for YouTube and Shazam) */}
-                {(source === 'youtube' || source === 'shazam') && (
-                    <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
-                        {REGIONS.map((r) => (
-                            <button
-                                key={r.code}
-                                onClick={() => setRegion(r.code)}
-                                className={`px-3 py-1.5 md:px-5 md:py-2 rounded-full nav-text !text-[9px] transition-all ${region === r.code
-                                    ? 'bg-white/10 text-white border-white/20'
-                                    : 'text-white/20 hover:text-white border-transparent hover:bg-white/5'
-                                    } border`}
-                            >
-                                {r.name}
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
-
+        <ViewContent
+            title="Charts"
+            subtitle="The world's most played music"
+            action={chartsAction}
+            refreshKey={tracks.length + (loading ? "loading" : "done")}
+        >
             {loading ? (
-                <div className="flex items-center justify-center py-40">
+                <div className="flex items-center justify-center py-40 modular-item opacity-0">
                     <div className="w-12 h-12 border-2 border-white/5 border-t-white/40 rounded-full animate-spin" />
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <AnimatePresence mode={isMobile ? undefined : "popLayout"}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-6xl mx-auto">
+                    <AnimatePresence mode={undefined}>
                         {tracks.map((track, idx) => {
                             const views = formatViews(track.viewCount)
                             const isSelected = (currentTrackId === track.id && track.id !== null) ||
                                 (track.needsResolution && currentTrackId === null);
 
                             return (
-                                <motion.div
+                                <div
                                     key={`${source}-${idx}-${track.id || 'stub'}`}
-                                    initial={isMobile ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: isMobile ? 0 : Math.min(idx * 0.03, 0.4) }}
-                                    className={`group relative p-4 rounded-[32px] glass-card border flex items-center gap-5 cursor-pointer hover:bg-white/5 hover:translate-y-[-2px] ${isSelected ? 'border-white/30 bg-white/10' : 'border-white/5'
+                                    className={`modular-item opacity-0 group relative p-4 rounded-[32px] glass-card border flex items-center gap-5 cursor-pointer hover:bg-white/5 transition-all ${isSelected ? 'border-white/30 bg-white/10' : 'border-white/5'
                                         }`}
                                     onClick={() => onPlay(track)}
                                 >
-                                    <div className="heading-xl !text-xl opacity-10 w-8 text-center group-hover:opacity-40 transition-all">
+                                    <div className="text-2xl font-black text-white/5 w-8 text-center group-hover:text-white/20 transition-all tracking-tighter">
                                         {(idx + 1).toString().padStart(2, '0')}
                                     </div>
 
@@ -164,13 +129,13 @@ export default function ChartsView({ onPlay, currentTrackId, loadingTrackId }: C
                                     </div>
 
                                     <div className="flex-1 min-w-0">
-                                        <h4 className="font-semibold text-white text-[15px] truncate mb-1" dangerouslySetInnerHTML={{ __html: track.title }} />
+                                        <h4 className="font-black text-white text-[15px] truncate mb-1" dangerouslySetInnerHTML={{ __html: track.title }} />
                                         <div className="flex items-center gap-2.5">
-                                            <p className="label-caps !text-[9px] !tracking-[0.1em] opacity-40 truncate">{track.channelTitle}</p>
+                                            <p className="text-[9px] font-black uppercase tracking-widest opacity-40 truncate">{track.channelTitle}</p>
                                             {views && (
                                                 <>
                                                     <div className="w-1 h-1 rounded-full bg-white/10" />
-                                                    <p className="label-caps !text-[9px] !tracking-[0.1em] opacity-30">{views} PLAYS</p>
+                                                    <p className="text-[9px] font-black uppercase tracking-widest opacity-30">{views} PLAYS</p>
                                                 </>
                                             )}
                                         </div>
@@ -183,12 +148,12 @@ export default function ChartsView({ onPlay, currentTrackId, loadingTrackId }: C
                                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                                         )}
                                     </div>
-                                </motion.div>
+                                </div>
                             )
                         })}
                     </AnimatePresence>
                 </div>
             )}
-        </div>
+        </ViewContent>
     )
 }

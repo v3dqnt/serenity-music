@@ -80,12 +80,18 @@ export default function SearchBar({
     const hasResults = localResults.length + appleResults.length + webResults.length > 0
 
     const TrackRow = ({ track, i }: { track: any; i: number }) => (
-        <div
+        <motion.div
             key={i}
+            variants={{
+                hidden: { opacity: 0, x: -10, scale: 0.98 },
+                visible: { opacity: 1, x: 0, scale: 1, transition: { type: "spring", stiffness: 300, damping: 25 } }
+            }}
             className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all text-left group hover:bg-white/[0.08]"
             style={{ background: currentTrackId === track.id ? 'rgba(255,255,255,0.12)' : undefined }}
         >
-            <div
+            <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 bg-white/5 cursor-pointer shadow-lg"
                 onClick={() => {
                     if (onSelect) onSelect(track)
@@ -99,7 +105,7 @@ export default function SearchBar({
                         <MusicNote weight="bold" className="w-6 h-6 text-white/20" />
                     </div>
                 }
-            </div>
+            </motion.div>
             <div className={`flex-1 min-w-0 cursor-pointer ${isMobile ? 'py-0' : 'py-1'}`} onClick={() => {
                 if (onSelect) onSelect(track)
                 else if (onPlay) onPlay(track)
@@ -112,38 +118,44 @@ export default function SearchBar({
 
             <div className={`flex items-center gap-1 md:gap-2 ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0'} transition-all duration-300`}>
                 {onAddToPlaylist && (
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.15)' }}
+                        whileTap={{ scale: 0.9 }}
                         onClick={(e) => { e.stopPropagation(); onAddToPlaylist(track); setIsOpen(false) }}
-                        className={`p-2 md:p-2.5 rounded-xl text-white/30 hover:text-white hover:bg-white/10 transition-all active:scale-90`}
+                        className={`p-2 md:p-2.5 rounded-xl text-white/30 hover:text-white transition-all`}
                         title="Add to Playlist"
                     >
                         <Plus weight="bold" className={isMobile ? "w-4 h-4" : "w-5 h-5"} />
-                    </button>
+                    </motion.button>
                 )}
 
                 {onAddToQueue && (
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.15)' }}
+                        whileTap={{ scale: 0.9 }}
                         onClick={(e) => { e.stopPropagation(); onAddToQueue(track); setIsOpen(false) }}
-                        className={`p-2 md:p-2.5 rounded-xl text-white/30 hover:text-white hover:bg-white/10 transition-all active:scale-90`}
+                        className={`p-2 md:p-2.5 rounded-xl text-white/30 hover:text-white transition-all`}
                         title="Add to Queue"
                     >
                         <List weight="bold" className={isMobile ? "w-4 h-4" : "w-5 h-5"} />
-                    </button>
+                    </motion.button>
                 )}
 
                 {onPlay && (
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
                         onClick={(e) => { e.stopPropagation(); onPlay(track); setIsOpen(false) }}
-                        className="p-2 md:p-2.5 rounded-xl text-white hover:bg-white hover:text-black transition-all active:scale-90 shadow-lg"
+                        className="p-2 md:p-2.5 rounded-xl text-white hover:bg-white hover:text-black transition-all shadow-lg"
                     >
                         {loadingTrackId === track.id
                             ? <div className="w-4 h-4 md:w-5 md:h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
                             : <Play weight="fill" className={isMobile ? "w-4 h-4" : "w-5 h-5"} />
                         }
-                    </button>
+                    </motion.button>
                 )}
             </div>
-        </div>
+        </motion.div>
     )
 
     const ResultsContent = () => (
@@ -188,52 +200,93 @@ export default function SearchBar({
     if (variant === 'nav') {
         return (
             <div ref={containerRef} className="relative h-12 flex items-center">
-                <form
+                <motion.form
                     onSubmit={handleSearch}
-                    className={`flex items-center transition-all duration-500 ease-out h-12 rounded-full ${isMobile || isOpen || query
-                        ? 'w-[calc(100vw-120px)] md:w-72 bg-white/5 pr-2 border border-white/10'
-                        : 'w-12 bg-white/5 border border-white/10 hover:bg-white/10 cursor-pointer'
-                        }`}
+                    whileFocus={{ scale: 1.01, y: -1 }}
+                    whileHover={{ scale: 1.005 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                    className={`flex items-center transition-all duration-300 ease-out rounded-full w-[calc(100vw-100px)] md:w-[450px] h-12 liquid-glass pl-5 relative overflow-hidden group ${isOpen || query ? 'border-white/40 shadow-[0_0_35px_rgba(255,255,255,0.2)]' : 'border-white/10 hover:border-white/25'}`}
+                    style={{ borderWidth: '1px' }}
                     onClick={() => !isOpen && setIsOpen(true)}
                 >
-                    <div
-                        className="w-12 h-12 flex items-center justify-center shrink-0 text-white/40 group-hover:text-white transition-colors"
-                    >
+                    {/* Background Glow */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/[0.05] to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                    <div className="flex items-center justify-center shrink-0 text-white/40 transition-colors group-focus-within:text-white relative z-10">
                         {loading ? (
-                            <div className="w-4 h-4 border-2 border-white/40 border-t-transparent rounded-full animate-spin" />
+                            <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
                         ) : (
                             <MagnifyingGlass weight="bold" className="w-5 h-5" />
                         )}
                     </div>
+
                     <input
                         type="text"
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                         onFocus={() => setIsOpen(true)}
-                        placeholder="Search..."
-                        className={`bg-transparent focus:outline-none font-semibold text-[13px] text-white placeholder-white/20 caret-white transition-all duration-500 ${isMobile || isOpen || query ? 'w-full opacity-100 px-2' : 'w-0 opacity-0 px-0 pointer-events-none'}`}
+                        placeholder="Search vibes..."
+                        className="bg-transparent focus:outline-none font-bold text-[13px] text-white placeholder-white/25 caret-white transition-all duration-300 w-full opacity-100 px-4 relative z-10"
                     />
-                    {(query || isOpen) && (
-                        <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setQuery(''); setLocalResults([]); setWebResults([]); setIsOpen(false) }}
-                            className="p-1 hover:text-white text-white/20 transition-colors"
-                        >
-                            <X weight="bold" className="w-4 h-4" />
-                        </button>
+
+                    <AnimatePresence>
+                        {(query || isOpen) && (
+                            <motion.button
+                                initial={{ opacity: 0, scale: 0.5, x: 10 }}
+                                animate={{ opacity: 1, scale: 1, x: 0 }}
+                                exit={{ opacity: 0, scale: 0.5, x: 10 }}
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setQuery(''); setLocalResults([]); setWebResults([]); setIsOpen(false) }}
+                                className="p-2 mr-1 hover:text-white text-white/30 transition-colors relative z-10"
+                            >
+                                <X weight="bold" className="w-3.5 h-3.5" />
+                            </motion.button>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Active Border Glow */}
+                    {(isOpen || query) && (
+                        <motion.div
+                            layoutId="search-glow"
+                            className="absolute inset-0 border border-white/20 rounded-full shadow-[inset_0_0_15px_rgba(255,255,255,0.05)]"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                        />
                     )}
-                </form>
+                </motion.form>
 
                 <AnimatePresence>
                     {isOpen && hasResults && (
                         <motion.div
-                            initial={{ opacity: 0, y: 12, scale: 0.96 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 12, scale: 0.96 }}
-                            className={`glass-dropdown ${isMobile ? 'fixed inset-x-4 top-[112px] rounded-[24px]' : 'absolute top-[calc(100%+20px)] left-0 w-[480px] rounded-[40px]'} overflow-hidden max-h-[70vh] overflow-y-auto z-[200] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)]`}
-                            style={{ border: '1px solid rgba(255,255,255,0.12)', borderTop: '1px solid rgba(255,255,255,0.25)' }}
+                            initial={{ opacity: 0, y: 15, scale: 0.92, rotateX: -10 }}
+                            animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }}
+                            exit={{ opacity: 0, y: 15, scale: 0.92, rotateX: -10 }}
+                            transition={{
+                                type: "spring",
+                                stiffness: 450,
+                                damping: 30,
+                                mass: 0.8
+                            }}
+                            className={`glass-dropdown ${isMobile ? 'fixed inset-x-4 top-[112px] rounded-[32px]' : 'absolute top-[calc(100%+16px)] left-0 w-[520px] rounded-[48px]'} overflow-hidden max-h-[70vh] overflow-y-auto z-[200] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.9)] perspective-1000`}
+                            style={{
+                                border: '1px solid rgba(255,255,255,0.15)',
+                                borderTop: '1px solid rgba(255,255,255,0.3)',
+                                backdropFilter: 'blur(40px) saturate(180%)'
+                            }}
                         >
-                            <ResultsContent />
+                            <motion.div
+                                initial="hidden"
+                                animate="visible"
+                                variants={{
+                                    hidden: { opacity: 0 },
+                                    visible: {
+                                        opacity: 1,
+                                        transition: { staggerChildren: 0.05 }
+                                    }
+                                }}
+                            >
+                                <ResultsContent />
+                            </motion.div>
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -284,9 +337,15 @@ export default function SearchBar({
 
     return (
         <div ref={containerRef} className="relative w-full max-w-3xl mx-auto z-[100]">
-            <form onSubmit={handleSearch}>
-                <div className="glass flex items-center w-full rounded-full shadow-2xl shadow-black/40 border-white/10">
-                    <div className="pl-5 text-white/20">
+            <motion.form
+                onSubmit={handleSearch}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileFocus={{ scale: 1.01, y: -2 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            >
+                <div className={`glass flex items-center w-full rounded-full shadow-2xl shadow-black/40 border transition-all duration-500 overflow-hidden group ${isOpen || query ? 'border-white/30 bg-white/[0.05]' : 'border-white/10 hover:border-white/20'}`}>
+                    <div className="pl-6 text-white/30 group-focus-within:text-white transition-colors">
                         <MagnifyingGlass weight="bold" className="w-5 h-5" />
                     </div>
                     <input
@@ -294,30 +353,49 @@ export default function SearchBar({
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                         onFocus={() => { if (hasResults) setIsOpen(true) }}
-                        placeholder="Search track by name or artist..."
-                        className="flex-1 px-4 py-4 bg-transparent focus:outline-none font-medium text-sm text-white placeholder-white/20 caret-white"
+                        placeholder="What's the vibe today?"
+                        className="flex-1 px-5 py-5 bg-transparent focus:outline-none font-bold text-base text-white placeholder-white/20 caret-white"
                     />
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.05, backgroundColor: '#fff' }}
+                        whileTap={{ scale: 0.95 }}
                         type="submit"
                         disabled={loading}
-                        className="mr-2 px-6 py-2 rounded-full font-bold text-xs uppercase tracking-widest bg-white text-black transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-                        style={{ boxShadow: '0 4px 20px rgba(255,255,255,0.1)' }}
+                        className="mr-2.5 px-8 py-3 rounded-full font-black text-[10px] uppercase tracking-[0.2em] bg-white text-black transition-all disabled:opacity-50 shadow-[0_10px_30px_rgba(255,255,255,0.1)]"
                     >
                         {loading ? '...' : 'Search'}
-                    </button>
+                    </motion.button>
                 </div>
-            </form>
+            </motion.form>
 
             <AnimatePresence>
                 {isOpen && hasResults && (
                     <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="glass-dropdown absolute top-full left-0 right-0 mt-3 rounded-3xl shadow-2xl shadow-black/80 overflow-hidden max-h-[60vh] overflow-y-auto border-white/10"
+                        initial={{ opacity: 0, y: 20, scale: 0.95, rotateX: -10 }}
+                        animate={{ opacity: 1, y: 12, scale: 1, rotateX: 0 }}
+                        exit={{ opacity: 0, y: 20, scale: 0.95, rotateX: -10 }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 30,
+                            mass: 0.8
+                        }}
+                        className="glass-dropdown absolute top-full left-0 right-0 rounded-[48px] shadow-[0_60px_120px_-20px_rgba(0,0,0,0.9)] overflow-hidden max-h-[60vh] overflow-y-auto border border-white/15 perspective-1000"
+                        style={{ backdropFilter: 'blur(50px) saturate(200%)' }}
                     >
-                        <ResultsContent />
+                        <motion.div
+                            initial="hidden"
+                            animate="visible"
+                            variants={{
+                                hidden: { opacity: 0 },
+                                visible: {
+                                    opacity: 1,
+                                    transition: { staggerChildren: 0.04 }
+                                }
+                            }}
+                        >
+                            <ResultsContent />
+                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>

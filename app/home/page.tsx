@@ -12,6 +12,8 @@ import { createClient } from '../../lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { getCachedBlobUrl, cacheAudioBlob, getLibrary, saveToLibrary } from '../lib/audioCache'
 import BackgroundActivity from "../components/BackgroundActivity"
+import BackgroundTitle from "../components/BackgroundTitle"
+import ViewContent from "../components/ViewContent"
 
 export default function Home() {
     const [selectedTrack, setSelectedTrack] = useState<any | null>(null)
@@ -331,28 +333,34 @@ export default function Home() {
     }
 
     return (
-        <main className="min-h-screen text-white flex flex-col relative overflow-hidden bg-black">
+        <main className="min-h-screen text-white flex flex-col relative bg-black overflow-x-hidden">
             {/* Subtle background */}
             <div className="fixed inset-0 w-full h-full pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(60,60,80,0.5) 0%, transparent 70%)', filter: 'blur(80px)' }} />
                 <div className="absolute bottom-[-5%] left-[-10%] w-[500px] h-[500px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(40,40,60,0.4) 0%, transparent 70%)', filter: 'blur(80px)' }} />
             </div>
 
-            {/* Content Container */}
-            <div className="relative z-10 w-full max-w-5xl mx-auto px-4 md:px-6 pt-4 md:pt-6 flex flex-col items-center">
+            {/* Pill Navbar */}
+            <PillNavbar
+                view={view}
+                setView={setView}
+                user={user}
+                handleLogout={handleLogout}
+                handlePlay={handlePlay}
+                addToQueue={addToQueue}
+                setTrackToAddToPlaylist={setTrackToAddToPlaylist}
+                selectedTrackId={selectedTrack?.id}
+                loadingTrackId={loadingTrackId}
+            />
 
-                {/* Pill Navbar */}
-                <PillNavbar
-                    view={view}
-                    setView={setView}
-                    user={user}
-                    handleLogout={handleLogout}
-                    handlePlay={handlePlay}
-                    addToQueue={addToQueue}
-                    setTrackToAddToPlaylist={setTrackToAddToPlaylist}
-                    selectedTrackId={selectedTrack?.id}
-                    loadingTrackId={loadingTrackId}
-                />
+            {/* Background Branding Title */}
+            <BackgroundTitle
+                text={view === 'home' ? 'Recents' : view}
+                visible={view === 'home' && libraryTracks.length > 0}
+            />
+
+            {/* Content Container */}
+            <div className="relative z-10 w-full max-w-5xl mx-auto px-4 md:px-6 pt-4 md:pt-6 flex flex-col items-center min-h-screen">
 
                 {/* Content Area */}
                 <div className="w-full">
@@ -364,7 +372,7 @@ export default function Home() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -20 }}
-                                className={`w-full ${selectedTrack ? 'mb-48' : 'mb-32'}`}
+                                className={`w-full ${selectedTrack ? 'mb-32 md:mb-48' : 'mb-20 md:mb-32'}`}
                             >
                                 <div className="text-center mb-10">
                                     <h2 className="heading-lg text-white">Downloads</h2>
@@ -374,7 +382,7 @@ export default function Home() {
                                     {libraryTracks.map((track) => (
                                         <motion.div
                                             key={track.id}
-                                            className="group relative aspect-square rounded-2xl overflow-hidden cursor-pointer glass-card"
+                                            className="group relative aspect-square rounded-2xl overflow-hidden cursor-pointer glass-card shadow-2xl shadow-white/5"
                                             onClick={() => handlePlay(track)}
                                             whileHover={{ scale: 1.03, y: -4 }}
                                         >
@@ -409,13 +417,8 @@ export default function Home() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -20 }}
-                                className={`w-full transition-all duration-500 ${selectedTrack ? 'mt-8 md:mt-12 mb-48 scale-95 md:scale-90 origin-top' : 'mt-12 md:mt-20 mb-32'}`}
+                                className={`w-full relative transition-all duration-500 ${selectedTrack ? 'mt-6 md:mt-12 mb-24 md:mb-48 md:scale-90 origin-top' : 'mt-6 md:mt-20 mb-4 md:mb-32'}`}
                             >
-                                {libraryTracks.length > 0 && (
-                                    <div className="text-center mb-8 md:mb-12 mt-2 md:mt-4 px-4">
-                                        <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-white">Recently Played</h2>
-                                    </div>
-                                )}
                                 {libraryTracks.length > 0 ? (
                                     <CoverFlow tracks={libraryTracks.slice(0, 7)} onSelect={handlePlay} activeTrackId={selectedTrack?.id} loadingTrackId={loadingTrackId} libraryTracks={libraryTracks} />
                                 ) : (
@@ -424,11 +427,7 @@ export default function Home() {
                                         <p className="text-sm mt-1">Search for music above to get started.</p>
                                     </div>
                                 )}
-                                <div className="flex items-center gap-4 px-4 mt-8 mb-4">
-                                    <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent relative">
-                                        <div className="absolute inset-0 bg-white/10 blur-[4px]" />
-                                    </div>
-                                </div>
+
                             </motion.div>
                         </AnimatePresence>
                     )}
@@ -441,7 +440,7 @@ export default function Home() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -20 }}
-                                className={`w-full transition-all duration-500 ${selectedTrack ? 'mt-4 mb-48 scale-95 origin-top' : 'mt-6 mb-32'}`}
+                                className={`w-full transition-all duration-500 ${selectedTrack ? 'mt-2 md:mt-4 mb-32 md:mb-48 md:scale-95 origin-top' : 'mt-4 md:mt-6 mb-24 md:mb-32'}`}
                             >
                                 <ChartsView
                                     onPlay={handlePlay}
@@ -452,16 +451,13 @@ export default function Home() {
                         </AnimatePresence>
                     )}
 
-                    {/* Placeholder for Curated view */}
+                    {/* Curated View */}
                     {view === 'curated' && (
-                        <AnimatePresence mode="wait">
-                            <motion.div
-                                key="placeholder-view"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                className="w-full text-center py-40"
-                            >
+                        <ViewContent
+                            title="Curated"
+                            subtitle="Handpicked vibes"
+                        >
+                            <div className="w-full text-center py-40 modular-item opacity-0">
                                 <div className="w-20 h-20 rounded-full glass border border-white/10 flex items-center justify-center mx-auto mb-6">
                                     <svg className="w-8 h-8 text-white/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <circle cx="12" cy="12" r="10" />
@@ -469,7 +465,7 @@ export default function Home() {
                                         <line x1="12" y1="16" x2="12.01" y2="16" />
                                     </svg>
                                 </div>
-                                <h3 className="heading-xl text-white uppercase !text-3xl">Curated</h3>
+                                <h3 className="heading-xl text-white uppercase !text-3xl">Coming Soon</h3>
                                 <p className="label-caps opacity-40 mt-3 px-12 leading-relaxed max-w-lg mx-auto">This section is coming in a future update. Stay tuned for handpicked vibes.</p>
                                 <button
                                     onClick={() => setView('home')}
@@ -477,8 +473,8 @@ export default function Home() {
                                 >
                                     Back to Home
                                 </button>
-                            </motion.div>
-                        </AnimatePresence>
+                            </div>
+                        </ViewContent>
                     )}
 
                     {/* Social View */}
@@ -499,7 +495,7 @@ export default function Home() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -20 }}
-                                className={`w-full transition-all duration-500 ${selectedTrack ? 'mt-4 mb-48 scale-90 origin-top' : 'mt-6 mb-32'}`}
+                                className={`w-full transition-all duration-500 ${selectedTrack ? 'mt-2 md:mt-4 mb-32 md:mb-48 md:scale-90 origin-top' : 'mt-4 md:mt-6 mb-24 md:mb-32'}`}
                             >
                                 <PlaylistsView
                                     libraryTracks={libraryTracks}
@@ -555,7 +551,7 @@ export default function Home() {
                 {selectedTrack && (
                     <NowPlayingBar
                         track={selectedTrack}
-                        src={localUrl || ''}
+                        src={localUrl || null}
                         isLoading={!!loadingTrackId}
                         queue={queue}
                         onClose={() => {

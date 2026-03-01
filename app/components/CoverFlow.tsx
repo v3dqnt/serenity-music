@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { animate, spring } from 'animejs'
 
 interface CoverFlowProps {
     tracks: any[]
@@ -13,157 +14,181 @@ interface CoverFlowProps {
 
 export default function CoverFlow({ tracks, onSelect, activeTrackId, loadingTrackId, libraryTracks = [] }: CoverFlowProps) {
     const [currentIndex, setCurrentIndex] = useState(Math.floor(tracks.length / 2))
-    const [isMobile, setIsMobile] = useState(false)
+    const [cardSize, setCardSize] = useState(300)
+    const containerRef = useRef<HTMLDivElement>(null)
 
-    useEffect(() => {
-        const checkMobile = () => setIsMobile(window.innerWidth < 768)
-        checkMobile()
-        window.addEventListener('resize', checkMobile)
-        return () => window.removeEventListener('resize', checkMobile)
+    // Derive responsive card size from viewport width
+    const updateCardSize = useCallback(() => {
+        const w = window.innerWidth
+        if (w < 400) setCardSize(168)
+        else if (w < 640) setCardSize(200)
+        else if (w < 768) setCardSize(230)
+        else setCardSize(300)
     }, [])
 
-    // Sync to the currently playing track whenever it changes
+    useEffect(() => {
+        updateCardSize()
+        window.addEventListener('resize', updateCardSize)
+        return () => window.removeEventListener('resize', updateCardSize)
+    }, [updateCardSize])
+
+    // Proportional spacing based on card size
+    const xStrength = cardSize * 0.62
+    const halfCard = cardSize / 2
+
+    // Sync highlighted card to the active track
     useEffect(() => {
         if (!activeTrackId) return
         const idx = tracks.findIndex(t => t.id === activeTrackId)
         if (idx !== -1) setCurrentIndex(idx)
     }, [activeTrackId, tracks])
 
+    // Run anime.js whenever currentIndex or cardSize changes
+    useEffect(() => {
+        if (!containerRef.current) return
+
+        tracks.forEach((track, index) => {
+            let offset = index - currentIndex
+            if (offset < -Math.floor(tracks.length / 2)) offset += tracks.length
+            if (offset > Math.floor(tracks.length / 2)) offset -= tracks.length
+
+            const isCenter = index === currentIndex
+            const absOffset = Math.abs(offset)
+            const translateX = offset * xStrength
+            const scale = isCenter ? 1.08 : Math.max(0.72, 1 - absOffset * 0.09)
+            const opacity = absOffset > 3 ? 0 : Math.max(0, 1 - absOffset * 0.2)
+            const zIndex = isCenter ? 20 : 20 - absOffset
+
+            const el = containerRef.current?.querySelector(`[data-track-id="${track.id}"]`) as HTMLElement
+            if (!el) return
+
+            animate(el, {
+                translateX,
+                scale,
+                opacity,
+                ease: spring({ bounce: 0.18 }),
+                duration: 450,
+                begin: () => { el.style.zIndex = zIndex.toString() }
+            })
+        })
+    }, [currentIndex, tracks, xStrength])
+
     if (!tracks || tracks.length === 0) return null
 
     const handleSelect = (index: number) => {
         if (index === currentIndex) {
             const track = tracks[index]
-            // Check if already downloaded locally
             const localMatch = libraryTracks.find(t => t.id === track.id)
-            if (localMatch?.url) {
-                onSelect({ ...track, url: localMatch.url, isLocal: true })
-            } else {
-                onSelect(track)
-            }
+            if (localMatch?.url) onSelect({ ...track, url: localMatch.url, isLocal: true })
+            else onSelect(track)
         } else {
             setCurrentIndex(index)
         }
     }
 
-    const xStrength = isMobile ? 80 : 140
-    const cardSize = isMobile ? 'w-48 h-48' : 'w-64 h-64'
-    const cardMargin = isMobile ? '-ml-24' : '-ml-32'
+    const currentTrack = tracks[currentIndex]
 
     return (
-        <div className="relative w-full flex flex-col items-center" style={{ paddingTop: isMobile ? '4rem' : '6rem' }}>
-
-            {/* Carousel Row */}
-            <div className={`relative w-full max-w-5xl ${isMobile ? 'h-48' : 'h-64'} flex items-center justify-center`}>
+        <div className="relative w-full flex flex-col items-center">
+            {/* Carousel */}
+            <div
+                ref={containerRef}
+                className="relative w-full flex items-center justify-center"
+                style={{ height: cardSize }}
+            >
                 {tracks.map((track, index) => {
-                    let offset = index - currentIndex
-                    if (offset < -Math.floor(tracks.length / 2)) offset += tracks.length
-                    if (offset > Math.floor(tracks.length / 2)) offset -= tracks.length
-
                     const isCenter = index === currentIndex
-                    const absOffset = Math.abs(offset)
-                    const translateX = offset * xStrength
-                    const scale = isCenter ? 1.25 : 1 - (absOffset * 0.05)
-                    const zIndex = isCenter ? 20 : 20 - absOffset
-                    const opacity = absOffset > 3 ? 0 : 1
-
-                    if (opacity === 0) return null
-
                     return (
-                        // Outer wrapper: handles position, translate, scale, zIndex — NO overflow:hidden
-                        <motion.div
+                        <div
                             key={track.id}
-                            className={`absolute ${cardSize} cursor-pointer left-1/2 ${cardMargin}`}
-                            style={{ zIndex: isCenter ? 20 : 20 - absOffset }}
-                            initial={false}
-                            animate={{
-                                x: translateX,
-                                scale: scale,
-                                opacity: opacity,
-                            }}
-                            transition={{
-                                type: "spring",
-                                stiffness: 250,
-                                damping: 25,
-                                mass: 0.8
+                            data-track-id={track.id}
+                            className="absolute cursor-pointer"
+                            style={{
+                                width: cardSize,
+                                height: cardSize,
+                                left: '50%',
+                                marginLeft: -halfCard,
+                                opacity: 0,
+                                willChange: 'transform, opacity'
                             }}
                             onClick={() => handleSelect(index)}
                         >
-                            {/* Inner card: handles clipping and visual appearance */}
+                            {/* Card shell */}
                             <div
-                                className="w-full h-full rounded-3xl overflow-hidden shadow-2xl"
+                                className="w-full h-full rounded-3xl overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.85)]"
                                 style={{
-                                    filter: isCenter ? 'brightness(1.1)' : 'brightness(0.75)',
-                                    transition: 'filter 0.3s ease'
+                                    filter: isCenter ? 'brightness(1.05)' : 'brightness(0.65)',
+                                    transition: 'filter 0.35s ease'
                                 }}
                             >
                                 {track.thumbnail ? (
                                     <img
                                         src={track.thumbnail}
                                         alt={track.title}
-                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                        className="w-full h-full object-cover"
                                         loading="lazy"
                                     />
                                 ) : (
-                                    <div className="w-full h-full bg-[var(--color-obsidian)] flex items-center justify-center p-4 text-center">
+                                    <div className="w-full h-full bg-white/5 flex items-center justify-center p-4 text-center">
                                         <div>
                                             <h3 className="text-white font-bold text-lg line-clamp-2">{track.title}</h3>
-                                            <p className="text-white/60 text-sm">{track.channelTitle}</p>
+                                            <p className="text-white/60 text-sm mt-1">{track.channelTitle}</p>
                                         </div>
                                     </div>
                                 )}
 
-                                {/* Play overlay on center card */}
+                                {/* Center card: play overlay on hover */}
                                 {isCenter && (
                                     <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-all duration-300 flex items-center justify-center group">
                                         {loadingTrackId === track.id ? (
-                                            <div className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} rounded-full bg-white/20 backdrop-blur-xl border border-white/30 flex items-center justify-center shadow-2xl`}>
-                                                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                            <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-xl border border-white/30 flex items-center justify-center">
+                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                             </div>
                                         ) : (
-                                            <div className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} rounded-full bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.3)] backdrop-blur-md`}>
-                                                <svg xmlns="http://www.w3.org/2000/svg" width={isMobile ? "20" : "26"} height={isMobile ? "20" : "26"} viewBox="0 0 24 24" fill="currentColor" className="text-black ml-1"><path d="M8 5v14l11-7z" /></svg>
+                                            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.3)]">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-black ml-0.5">
+                                                    <path d="M8 5v14l11-7z" />
+                                                </svg>
                                             </div>
                                         )}
                                     </div>
                                 )}
 
+                                {/* Side cards: dark scrim */}
                                 {!isCenter && (
-                                    <div className="absolute inset-0 bg-black/20 pointer-events-none" />
+                                    <div className="absolute inset-0 bg-black/25 pointer-events-none" />
                                 )}
                             </div>
-                        </motion.div>
+                        </div>
                     )
                 })}
             </div>
 
-            {/* Label — rendered OUTSIDE the card motion.div so it's never clipped */}
-            <div className={`relative ${isMobile ? 'h-20 mt-10' : 'h-24 mt-16'} flex items-start justify-center w-full`} style={{ zIndex: 100 }}>
+            {/* Label — directly below carousel, no extra gap */}
+            <div className="mt-4 w-full flex items-start justify-center" style={{ zIndex: 100 }}>
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={currentIndex}
-                        initial={{ opacity: 0, y: 8 }}
+                        initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -8 }}
-                        transition={{ duration: 0.2 }}
-                        className="text-center pointer-events-none px-6"
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.18 }}
+                        className="text-center pointer-events-none px-6 max-w-sm md:max-w-2xl"
                     >
-                        <h3 className={`text-white ${isMobile ? 'text-2xl' : 'text-5xl'} font-black mb-1`}>
-                            {tracks[currentIndex]?.title}
+                        <h3 className="text-white text-lg md:text-4xl font-black tracking-tight leading-snug truncate">
+                            {currentTrack?.title}
                         </h3>
-                        <p className={`label-caps opacity-60 ${isMobile ? '!text-[9px]' : ''}`}>
-                            {tracks[currentIndex]?.channelTitle}
+                        <p className="label-caps opacity-60 mt-1 !text-[9px] md:!text-[10px]">
+                            {currentTrack?.channelTitle}
                         </p>
-                        {/* LOCAL badge */}
-                        {libraryTracks.some(t => t.id === tracks[currentIndex]?.id && t.url) && (
-                            <span className="inline-block mt-4 px-3 py-1 rounded-full label-caps bg-white/5 border border-white/10 text-white/50">
+                        {libraryTracks.some(t => t.id === currentTrack?.id && t.url) && (
+                            <span className="inline-block mt-2 px-2.5 py-1 rounded-full !text-[7px] label-caps bg-white/5 border border-white/10 text-white/50">
                                 ✓ Authenticated
                             </span>
                         )}
                     </motion.div>
                 </AnimatePresence>
             </div>
-
         </div>
     )
 }

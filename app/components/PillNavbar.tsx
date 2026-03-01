@@ -34,63 +34,73 @@ export default function PillNavbar({
     const navItems = ['home', 'playlists', 'charts', 'curated', 'social'] as const
 
     return (
-        <div className="w-full flex justify-center sticky top-8 z-[120] px-4 mb-16">
-            <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="liquid-glass rounded-full px-2 py-2 md:px-3 md:py-3 flex items-center gap-1 md:gap-1.5 shadow-2xl backdrop-blur-[40px]"
-            >
-                {/* Hamburger Button (Mobile only - Left) */}
-                <button
-                    onClick={() => setIsSidebarOpen(true)}
-                    className="md:hidden flex items-center justify-center w-10 h-10 rounded-full glass border border-white/10 text-white mr-1"
+        <>
+            <div className="w-full flex items-center sticky top-4 md:top-8 z-[120] px-4 md:px-6 mb-12 md:mb-16">
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex-1 flex items-center"
                 >
-                    <ListIcon weight="bold" className="w-5 h-5" />
-                </button>
+                    {/* Hamburger Button (Mobile only - Left) */}
+                    <button
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="md:hidden flex items-center justify-center w-10 h-10 rounded-full glass border border-white/10 text-white mr-1"
+                    >
+                        <ListIcon weight="bold" className="w-5 h-5" />
+                    </button>
 
-                {/* Search Bar (Nav variant) */}
-                <div className="px-0.5 md:px-1 flex-1 md:flex-none">
-                    <SearchBar
-                        variant="nav"
-                        onPlay={handlePlay}
-                        onAddToQueue={addToQueue}
-                        onAddToPlaylist={setTrackToAddToPlaylist}
-                        currentTrackId={selectedTrackId}
-                        loadingTrackId={loadingTrackId}
-                        onResults={(count: number) => {
-                            if (count > 0) setView('home')
-                        }}
-                    />
-                </div>
+                    {/* Search Bar (Nav variant) */}
+                    <div className="px-0.5 md:px-1">
+                        <SearchBar
+                            variant="nav"
+                            onPlay={handlePlay}
+                            onAddToQueue={addToQueue}
+                            onAddToPlaylist={setTrackToAddToPlaylist}
+                            currentTrackId={selectedTrackId}
+                            loadingTrackId={loadingTrackId}
+                            onResults={(count: number) => {
+                                if (count > 0) setView('home')
+                            }}
+                        />
+                    </div>
+                </motion.div>
 
                 {/* Nav Items (Desktop only) */}
-                <div className="hidden md:flex items-center gap-0.5 px-1 md:px-2 border-l border-white/10 ml-0.5 md:ml-1">
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="hidden md:flex items-center justify-center gap-1 px-2"
+                >
                     {navItems.map((item) => (
                         <button
                             key={item}
                             onClick={() => setView(item)}
-                            className={`relative px-3 py-2.5 md:px-6 md:py-3.5 rounded-full nav-text transition-all duration-300 ${view === item
+                            className={`relative px-5 py-3 rounded-full nav-text transition-all duration-300 ${view === item
                                 ? 'text-white'
                                 : 'text-white/30 hover:text-white'
                                 }`}
                         >
-                            <span className="relative z-10 capitalize text-[10px] md:text-xs">{item}</span>
+                            <span className="relative z-10 capitalize text-xs">{item}</span>
                             {view === item && (
                                 <motion.div
                                     layoutId="navbar-active-tab"
-                                    className="absolute inset-0 rounded-full glass border-t border-white/30 shadow-2xl bg-white/10"
+                                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-white shadow-[0_0_8px_white]"
                                     transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                                 />
                             )}
                         </button>
                     ))}
-                </div>
+                </motion.div>
 
                 {/* Account Section (Desktop only) */}
-                <div className="hidden md:block relative border-l border-white/10 pl-2 ml-1">
+                <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="hidden md:flex flex-1 justify-end relative pl-1"
+                >
                     <button
                         onClick={() => setShowUserMenu(v => !v)}
-                        className="w-12 h-12 rounded-full bg-white/5 border border-white/10 text-white flex items-center justify-center font-bold text-sm hover:border-white/40 hover:bg-white/10 transition-all shadow-inner"
+                        className="px-5 py-3 rounded-full text-white/60 flex items-center justify-center font-bold text-xs hover:text-white transition-all leading-none liquid-glass"
                     >
                         {user?.user_metadata?.display_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
                     </button>
@@ -140,8 +150,8 @@ export default function PillNavbar({
                             </motion.div>
                         )}
                     </AnimatePresence>
-                </div>
-            </motion.div>
+                </motion.div>
+            </div>
 
             {/* Sidebar Sidebar (Mobile) */}
             <AnimatePresence>
@@ -225,6 +235,6 @@ export default function PillNavbar({
                     </div>
                 )}
             </AnimatePresence>
-        </div>
+        </>
     )
 }
